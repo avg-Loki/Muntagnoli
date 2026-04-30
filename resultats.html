@@ -223,7 +223,7 @@ var resFilter      = 'TOUS';
 var refreshInterval = null;
 var sessionEnded   = localStorage.getItem('grimpe_session_ended') === 'true';
 var sessions       = JSON.parse(localStorage.getItem('grimpe_sessions') || '[]');
-var BASE_URL = window.location.origin + '/formulaire.html';
+var BASE_URL = window.location.href.replace(/resultats\.html.*$/, 'formulaire.html');
 
 var DIFF_ORDER = ['JAUNE','ORANGE','VERT','BLEU','ROUGE','NOIR','WHITE'];
 var CAT_COLORS = {U8:'#fef9c3',U10:'#dcfce7',U12:'#dbeafe',U14:'#ede9fe',U16:'#fce7f3',U18:'#ffedd5',U20:'#e0f2fe',ADULTE:'#f1f5f9'};
