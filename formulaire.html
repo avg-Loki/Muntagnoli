@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>I Muntagnoli - Saisie</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#e63946;--navy:#1a1a2e;--bg:#f0f2f5;--surface:#fff;--border:#e2e4ea;--radius:12px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);min-height:100vh;color:var(--navy)}
+.header{background:var(--navy);color:white;padding:1rem 1.2rem;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.header .logo{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+.header h1{font-size:1rem;font-weight:700}
+.header .cat-tag{margin-left:auto;background:rgba(255,255,255,0.15);padding:.25rem .8rem;border-radius:20px;font-size:.82rem;font-weight:700}
+.wrap{padding:1rem;max-width:500px;margin:0 auto}
+.card{background:var(--surface);border-radius:var(--radius);padding:1.4rem;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:1rem}
+.card-title{font-size:.75rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.9rem}
+
+/* Dossard select */
+.dossard-select{width:100%;padding:.9rem 1rem;font-size:1.3rem;font-weight:700;text-align:center;border:2px solid var(--border);border-radius:10px;outline:none;color:var(--navy);background:white;cursor:pointer;appearance:none;-webkit-appearance:none;-moz-appearance:none;position:relative;z-index:1}
+.dossard-select:focus{border-color:var(--accent);outline:none}
+.dossard-select::-webkit-outer-spin-button, .dossard-select::-webkit-inner-spin-button { -webkit-appearance: none; }
+.select-wrap{position:relative}
+.select-wrap::after{content:'▼';position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#aaa;font-size:.8rem;pointer-events:none;z-index:0}
+
+.athlete-info{display:none;background:#f0fff4;border:1px solid #86efac;border-radius:8px;padding:.8rem 1rem;margin-top:.8rem;font-size:.9rem}
+.athlete-info.show{display:flex;align-items:center;gap:10px}
+.athlete-info strong{display:block;font-size:1rem}
+.athlete-info span{color:#555;font-size:.82rem}
+
+/* Grille blocs */
+.blocs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bloc-btn{position:relative;aspect-ratio:1;border-radius:10px;border:3px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;touch-action:manipulation}
+.bloc-btn .num{font-size:1.5rem;font-weight:800;line-height:1}
+.bloc-btn .diff{font-size:.6rem;font-weight:700;opacity:.7;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.bloc-btn.checked{border-color:rgba(0,0,0,.3);box-shadow:0 0 0 3px rgba(255,255,255,.5) inset}
+.bloc-btn.checked::after{content:'✓';position:absolute;top:4px;right:6px;font-size:.85rem;font-weight:900;color:rgba(0,0,0,.4)}
+.bloc-btn:active{transform:scale(.93)}
+.c-JAUNE{background:#FFFF00;color:#1a1a2e}
+.c-ORANGE{background:#FFC000;color:#1a1a2e}
+.c-VERT{background:#00B050;color:white}
+.c-BLEU{background:#00B0F0;color:#1a1a2e}
+.c-ROUGE{background:#FF0000;color:white}
+.c-NOIR{background:#111;color:white}
+.c-WHITE{background:#f0f0f0;color:#1a1a2e;border:2px solid #ddd}
+
+.progress-wrap{background:#f0f0f0;border-radius:20px;height:8px;margin:.8rem 0 .4rem;overflow:hidden}
+.progress-bar{height:100%;background:var(--accent);border-radius:20px;transition:width .3s}
+.progress-label{font-size:.78rem;color:#888;text-align:right}
+
+.btn-submit{width:100%;padding:1.1rem;background:var(--accent);color:white;border:none;border-radius:10px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:.5rem}
+.btn-submit:disabled{background:#ccc;cursor:not-allowed}
+.btn-submit:not(:disabled):hover{background:#c1121f}
+
+.error-msg{color:#b91c1c;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;padding:.7rem 1rem;font-size:.85rem;margin-top:.8rem;display:none}
+.error-msg.show{display:block}
+
+.success-screen{display:none;text-align:center;padding:3rem 1.5rem}
+.success-screen.show{display:block}
+.success-screen .big-icon{font-size:4rem;margin-bottom:1rem}
+.success-screen h2{font-size:1.4rem;font-weight:800;margin-bottom:.5rem}
+.success-screen p{color:#666;font-size:.95rem;margin-bottom:1.5rem}
+.btn-again{display:inline-block;padding:.8rem 2rem;background:var(--navy);color:white;border-radius:10px;font-weight:700;font-size:.95rem;cursor:pointer;border:none}
+
+.spinner-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);align-items:center;justify-content:center;z-index:999}
+.spinner-overlay.show{display:flex}
+.spinner-box{background:white;border-radius:12px;padding:1.5rem 2rem;text-align:center;font-weight:600;font-size:.95rem}
+
+/* Légende */
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:1rem;padding-top:1rem;border-top:1px solid #f0f0f0}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:#555}
+.legend-dot{width:14px;height:14px;border-radius:4px;flex-shrink:0;border:1px solid rgba(0,0,0,.1)}
+</style>
+</head>
+<body>
+
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner-box">Envoi en cours...</div>
+</div>
+
+<div class="header">
+  <div class="logo">I</div>
+  <h1>I Muntagnoli</h1>
+  <span class="cat-tag" id="headerCat">—</span>
+</div>
+
+<div class="wrap">
+  <div id="formScreen">
+
+    <!-- Dossard -->
+    <div class="card">
+      <div class="card-title">Ton numero de dossard</div>
+      <div class="select-wrap">
+        <select class="dossard-select" id="dossardSelect">
+          <option value="">-- Selectionne ton dossard --</option>
+        </select>
+      </div>
+      <div class="athlete-info" id="athleteInfo">
+        <span style="font-size:1.2rem">👤</span>
+        <div>
+          <strong id="athleteName">—</strong>
+          <span id="athleteDetails">—</span>
+        </div>
+      </div>
+      <div class="error-msg" id="dossardError">Dossard introuvable.</div>
+    </div>
+
+    <!-- Blocs -->
+    <div class="card" id="blocsCard" style="display:none">
+      <div class="card-title">Coche les blocs que tu as reussis</div>
+      <div class="blocs-grid" id="blocsGrid"></div>
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progressBar" style="width:0%"></div>
+      </div>
+      <div class="progress-label" id="progressLabel">0 / 0 blocs</div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <button class="btn-submit" id="btnSubmit" disabled onclick="submitForm()">Envoyer mes resultats</button>
+    <div class="error-msg" id="submitError"></div>
+
+  </div>
+
+  <div class="card success-screen" id="successScreen">
+    <div class="big-icon">🏆</div>
+    <h2>Merci !</h2>
+    <p id="successMsg">Tes blocs ont bien ete enregistres.</p>
+    <p style="color:#666;font-size:.85rem;margin-top:1rem">Tes resultats ont ete sauvegarde. A bientot !</p>
+  </div>
+</div>
+
+<script>
+var JSONBIN_URL = 'https://api.jsonbin.io/v3/b/';
+var CONFIG = { API_KEY: '', BIN_ID: '' };
+
+var params   = new URLSearchParams(window.location.search);
+var CATEGORIE = params.get('cat') || '';
+var blocs     = [];
+var inscrits  = [];
+var checked   = {};
+var currentAthlete = null;
+var dataLoaded = false;
+
+var COLOR_LABELS = {JAUNE:'Facile',ORANGE:'Peu diff',VERT:'Moyen',BLEU:'Difficile',ROUGE:'Tres diff',NOIR:'Expert',WHITE:'Elite'};
+var COLOR_CSS    = {JAUNE:'#FFFF00',ORANGE:'#FFC000',VERT:'#00B050',BLEU:'#00B0F0',ROUGE:'#FF0000',NOIR:'#111111',WHITE:'#f0f0f0'};
+
+document.getElementById('headerCat').textContent = CATEGORIE || '—';
+
+// Load config from params
+var apiKey = params.get('k') || '';
+var binId  = params.get('b') || '';
+CONFIG.API_KEY = apiKey;
+CONFIG.BIN_ID  = binId;
+
+if (!CATEGORIE || !CONFIG.API_KEY || !CONFIG.BIN_ID) {
+  document.getElementById('formScreen').innerHTML =
+    '<div class="card" style="text-align:center;padding:2rem;color:#b91c1c;">Lien invalide — scanne le QR code depuis la salle.</div>';
+} else {
+  // Fetch category data from JSONBin
+  fetchCategoryData();
+}
+
+function fetchCategoryData() {
+  fetch(JSONBIN_URL + CONFIG.BIN_ID + '/latest', {
+    headers: {'X-Master-Key': CONFIG.API_KEY}
+  })
+  .then(function(r){ 
+    if (!r.ok) throw new Error('Erreur serveur : ' + r.status);
+    return r.json(); 
+  })
+  .then(function(d){
+    // Vérifier si la session est terminée
+    if (d.record && d.record.sessionEnded) {
+      document.getElementById('formScreen').innerHTML =
+        '<div class="card" style="text-align:center;padding:2rem;color:#b91c1c;">'
+        + '<strong style="font-size:1.1rem">⛔ Session terminée</strong><br>'
+        + '<p style="margin-top:0.8rem;color:#666">Les participants ne peuvent plus soumettre de resultats.</p>'
+        + '<p style="font-size:.85rem;color:#999">Contactez l\'organisateur pour relancer la session.</p>'
+        + '</div>';
+      return;
+    }
+    if (d.record && d.record.categoryData && d.record.categoryData[CATEGORIE]) {
+      var catData = d.record.categoryData[CATEGORIE];
+      blocs = catData.blocs || [];
+      inscrits = catData.inscrits || [];
+      dataLoaded = true;
+      buildDossardSelect();
+      renderBlocs();
+    } else {
+      throw new Error('Donnees non trouvees pour ' + CATEGORIE + '. Assurez-vous d\'avoir cree les QR codes dans resultats.html');
+    }
+  })
+  .catch(function(e){
+    console.error('Error fetching category data:', e);
+    document.getElementById('formScreen').innerHTML =
+      '<div class="card" style="text-align:center;padding:2rem;color:#b91c1c;">'
+      + '<strong>Erreur de chargement</strong><br>'
+      + e.message
+      + '<br><br><small style="color:#666">Assurez-vous que le QR code a ete genere correctement.</small>'
+      + '</div>';
+  });
+}
+
+function buildDossardSelect() {
+  var sel = document.getElementById('dossardSelect');
+  sel.innerHTML = '<option value="">-- Selectionne ton dossard --</option>';
+  inscrits.sort(function(a,b){ return a.DOSSARD - b.DOSSARD; }).forEach(function(a) {
+    var opt = document.createElement('option');
+    opt.value = a.DOSSARD;
+    opt.textContent = a.DOSSARD + ' — ' + a.NOM + ' ' + a.PRENOM;
+    sel.appendChild(opt);
+  });
+  
+  // Add event listeners for better mobile support
+  if (!sel._listenerAdded) {
+    sel.addEventListener('change', onDossardChange);
+    sel.addEventListener('input', onDossardChange);
+    sel._listenerAdded = true;
+  }
+}
+
+function onDossardChange() {
+  var val = parseInt(document.getElementById('dossardSelect').value);
+  var infoEl  = document.getElementById('athleteInfo');
+  var cardEl  = document.getElementById('blocsCard');
+  var errEl   = document.getElementById('dossardError');
+
+  if (!val) {
+    infoEl.classList.remove('show');
+    cardEl.style.display = 'none';
+    currentAthlete = null;
+    updateSubmitBtn();
+    return;
+  }
+  var athlete = null;
+  for (var i = 0; i < inscrits.length; i++) {
+    if (Number(inscrits[i].DOSSARD) === val) { athlete = inscrits[i]; break; }
+  }
+  if (athlete) {
+    currentAthlete = athlete;
+    document.getElementById('athleteName').textContent    = athlete.NOM + ' ' + athlete.PRENOM;
+    document.getElementById('athleteDetails').textContent = (athlete.CLUB || '') + (athlete.CATEGORIE ? ' — ' + athlete.CATEGORIE : '');
+    infoEl.classList.add('show');
+    errEl.classList.remove('show');
+    cardEl.style.display = 'block';
+    // Reset checked
+    checked = {};
+    document.querySelectorAll('.bloc-btn').forEach(function(b){ b.classList.remove('checked'); });
+    updateProgress();
+  } else {
+    currentAthlete = null;
+    infoEl.classList.remove('show');
+    errEl.classList.add('show');
+    cardEl.style.display = 'none';
+  }
+  updateSubmitBtn();
+}
+
+function renderBlocs() {
+  var grid = document.getElementById('blocsGrid');
+  if (!blocs.length) {
+    grid.innerHTML = '<p style="color:#888;font-size:.88rem;grid-column:1/-1">Aucun bloc configure.</p>';
+    return;
+  }
+  var html = '';
+  blocs.forEach(function(b) {
+    html += '<div class="bloc-btn c-' + b.couleur + '" id="bloc-' + b.bloc + '">'
+          + '<span class="num">' + b.bloc + '</span>'
+          + '<span class="diff">' + (COLOR_LABELS[b.couleur] || b.couleur) + '</span>'
+          + '</div>';
+  });
+  grid.innerHTML = html;
+  
+  // Add event listeners for better mobile support
+  blocs.forEach(function(b) {
+    var el = document.getElementById('bloc-' + b.bloc);
+    if (el) {
+      el.addEventListener('click', function(){ toggleBloc(b.bloc); });
+      el.addEventListener('touchend', function(e){ e.preventDefault(); toggleBloc(b.bloc); });
+    }
+  });
+
+  // Legend
+  var seen = [];
+  var legendHtml = '';
+  blocs.forEach(function(b) {
+    if (seen.indexOf(b.couleur) === -1) {
+      seen.push(b.couleur);
+      legendHtml += '<div class="legend-item">'
+        + '<div class="legend-dot" style="background:' + (COLOR_CSS[b.couleur]||'#ccc') + '"></div>'
+        + (COLOR_LABELS[b.couleur] || b.couleur)
+        + '</div>';
+    }
+  });
+  document.getElementById('legend').innerHTML = legendHtml;
+  updateProgress();
+}
+
+function toggleBloc(num) {
+  checked[num] = !checked[num];
+  var el = document.getElementById('bloc-' + num);
+  if (el) el.classList.toggle('checked', !!checked[num]);
+  updateProgress();
+  updateSubmitBtn();
+}
+
+function updateProgress() {
+  var total = blocs.length;
+  var done  = Object.keys(checked).filter(function(k){ return checked[k]; }).length;
+  var pct   = total ? (done / total * 100) : 0;
+  document.getElementById('progressBar').style.width  = pct + '%';
+  document.getElementById('progressLabel').textContent = done + ' / ' + total + ' blocs';
+}
+
+function updateSubmitBtn() {
+  document.getElementById('btnSubmit').disabled = !currentAthlete;
+}
+
+function submitForm() {
+  if (!currentAthlete) return;
+  document.getElementById('submitError').classList.remove('show');
+  document.getElementById('spinnerOverlay').classList.add('show');
+
+  // Build row matching CSV format: Horodateur, Dossard, then one col per bloc
+  var now = new Date();
+  var horodateur = now.getFullYear() + '/' + pad(now.getMonth()+1) + '/' + pad(now.getDate())
+    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()) + ' AM UTC';
+
+  var row = {
+    horodateur: horodateur,
+    dossard: currentAthlete.DOSSARD,
+    nom: currentAthlete.NOM,
+    prenom: currentAthlete.PRENOM,
+    categorie: CATEGORIE,
+    club: currentAthlete.CLUB || '',
+    sexe: currentAthlete.SEXE || '',
+    blocs_valides: {}
+  };
+  blocs.forEach(function(b) {
+    row.blocs_valides[b.bloc] = checked[b.bloc] ? '1' : '';
+  });
+  row.score = Object.keys(checked).filter(function(k){ return checked[k]; }).length;
+  row.total_blocs = blocs.length;
+
+  // Read bin, append, write
+  fetch(JSONBIN_URL + CONFIG.BIN_ID + '/latest', {
+    headers: {'X-Master-Key': CONFIG.API_KEY}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    // Vérifier si la session est terminée
+    if (data.record && data.record.sessionEnded) {
+      throw new Error('Session terminée — Les resultats ne peuvent plus être soumis.');
+    }
+    var existing = (data.record && data.record.resultats) ? data.record.resultats : [];
+    existing.push(row);
+    var fullData = data.record || {};
+    fullData.resultats = existing;
+    return fetch(JSONBIN_URL + CONFIG.BIN_ID, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json','X-Master-Key':CONFIG.API_KEY},
+      body: JSON.stringify(fullData)
+    });
+  })
+  .then(function() {
+    var scoreCount = row.score;
+    document.getElementById('successMsg').textContent =
+      scoreCount + ' bloc' + (scoreCount > 1 ? 's' : '') + ' valide' + (scoreCount > 1 ? 's' : '')
+      + ' enregistre' + (scoreCount > 1 ? 's' : '') + ' pour le dossard ' + currentAthlete.DOSSARD + '.';
+    document.getElementById('formScreen').style.display = 'none';
+    document.getElementById('successScreen').classList.add('show');
+  })
+  .catch(function(err) {
+    var errEl = document.getElementById('submitError');
+    errEl.textContent = 'Erreur reseau : ' + err.message + ' — Verifie ta connexion.';
+    errEl.classList.add('show');
+  })
+  .finally(function() {
+    document.getElementById('spinnerOverlay').classList.remove('show');
+  });
+}
+
+function pad(n){ return n < 10 ? '0'+n : ''+n; }
+
+function resetForm() {
+  checked = {};
+  currentAthlete = null;
+  document.getElementById('dossardSelect').value = '';
+  document.getElementById('athleteInfo').classList.remove('show');
+  document.getElementById('dossardError').classList.remove('show');
+  document.getElementById('blocsCard').style.display = 'none';
+  document.getElementById('formScreen').style.display = 'block';
+  document.getElementById('successScreen').classList.remove('show');
+  document.querySelectorAll('.bloc-btn').forEach(function(b){ b.classList.remove('checked'); });
+  updateProgress();
+  updateSubmitBtn();
+}
+
+function exportCategoryCsv() {
+  fetch(JSONBIN_URL + CONFIG.BIN_ID + '/latest', {
+    headers: {'X-Master-Key': CONFIG.API_KEY}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    var allResults = (d.record && d.record.resultats) ? d.record.resultats : [];
+    var catResults = allResults.filter(function(r){ return r.categorie === CATEGORIE; });
+    
+    if (!catResults.length) {
+      alert('Aucun resultat pour cette categorie.');
+      return;
+    }
+
+    // Get bloc list from first result or from stored blocs
+    var allBlocNums = {};
+    catResults.forEach(function(r){
+      if (r.blocs_valides) Object.keys(r.blocs_valides).forEach(function(k){ allBlocNums[k]=true; });
+    });
+    var blocList = Object.keys(allBlocNums).sort(function(a,b){ return parseInt(a)-parseInt(b); }).map(function(n){ return parseInt(n); });
+
+    // Build header
+    var header = ['"Horodateur"', '"Numero du DOSSARD"'];
+    blocList.forEach(function(b){ header.push('"Numero du BLOC ['+b+']"'); });
+
+    // Build rows
+    var rows = catResults.map(function(r){
+      var row = ['"'+r.horodateur+'"', '"'+r.dossard+'"'];
+      blocList.forEach(function(b){
+        var val = r.blocs_valides && (r.blocs_valides[b]==='1' || r.blocs_valides[b]===1) ? '"1"' : '""';
+        row.push(val);
+      });
+      return row.join(',');
+    });
+
+    var csv = '\uFEFF' + header.join(',') + '\n' + rows.join('\n');
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'resultats_'+CATEGORIE+'.csv';
+    a.click();
+  })
+  .catch(function(e){
+    alert('Erreur lors du telecharement du CSV : ' + e.message);
+  });
+}
+</script>
+</body>
+</html>

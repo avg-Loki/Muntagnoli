@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Muntagnoli — Générateur Fiche Bloc</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header class="app-header">
+  <a href="index.html" class="logo">G</a>
+  <span class="brand">I <span>Muntagnoli</span></span>
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="fiche-bloc.html" class="active">Fiche Bloc</a>
+    <a href="inscrits.html">Inscrits</a>
+    <a href="resultats.html">Résultats</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <!-- ÉTAPE 1 -->
+  <div class="card">
+    <h2><span class="step">1</span> Importer le fichier de sélection</h2>
+
+    <div class="drop-zone" id="dropZone">
+      <span class="icon">📂</span>
+      <p><strong>Glissez-déposez</strong> votre fichier ici</p>
+      <p style="margin-top:6px;">ou <strong style="color:var(--accent);cursor:pointer;" onclick="document.getElementById('fileInput').click()">cliquez pour parcourir</strong></p>
+      <p style="margin-top:8px;font-size:0.78rem;color:#aaa;">Fichier Excel (.xlsx) — ex: selection_bloc_2025.xlsx</p>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+
+    <div class="file-info" id="fileInfo">
+      <span class="check">✓</span>
+      <div>
+        <div class="fname" id="fileName">—</div>
+        <div class="fsize" id="fileSize">—</div>
+      </div>
+    </div>
+
+    <div class="status" id="statusImport"></div>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div class="card step-disabled" id="step2-card">
+    <h2><span class="step">2</span> Choisir la catégorie</h2>
+    <div class="cat-grid" id="catGrid">
+      <div style="color:#aaa;font-size:0.88rem;grid-column:1/-1;">Importez d'abord le fichier Excel.</div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div class="card step-disabled" id="step3-card">
+    <h2><span class="step">3</span> Générer le fichier Excel</h2>
+    <button class="btn btn-primary btn-full" id="btnGenerate" disabled>Générer la fiche bloc</button>
+    <div class="status" id="statusGenerate"></div>
+  </div>
+
+  <!-- RÉSULTAT -->
+  <div class="card preview-section" id="resultCard">
+    <h2>✅ Fiche générée</h2>
+    <div class="preview-info" id="previewInfo"></div>
+    <div class="action-row">
+      <a class="btn btn-dark" id="downloadLink" href="#" download>⬇ Télécharger le fichier Excel</a>
+      <button class="btn btn-secondary" onclick="resetAll()">↩ Nouvelle fiche</button>
+    </div>
+    <div class="bloc-preview" id="blocPreview"></div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTES
+   ============================================================ */
+const COLOR_MAP = {
+  'JAUNE':  { bg: 'FFFF00', font: '000000', css: '#FFFF00', label: 'Facile' },
+  'ORANGE': { bg: 'FFC000', font: '000000', css: '#FFC000', label: 'Peu difficile' },
+  'VERT':   { bg: '00B050', font: 'FFFFFF', css: '#00B050', label: 'Moyen' },
+  'BLEU':   { bg: '00B0F0', font: '000000', css: '#00B0F0', label: 'Difficile' },
+  'ROUGE':  { bg: 'FF0000', font: 'FFFFFF', css: '#FF0000', label: 'Très difficile' },
+  'NOIR':   { bg: '000000', font: 'FFFFFF', css: '#000000', label: 'Expert' },
+  'WHITE':  { bg: 'FFFFFF', font: '000000', css: '#FFFFFF', label: 'Élite' },
+};
+
+const DIFF_ORDER = ['JAUNE', 'ORANGE', 'VERT', 'BLEU', 'ROUGE', 'NOIR', 'WHITE'];
+
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+let selectedCat    = null;
+let categoriesData = {};
+
+/* ============================================================
+   IMPORT FICHIER
+   ============================================================ */
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+dropZone.addEventListener('click', () => fileInput.click());
+
+function handleFile(file) {
+  if (!file.name.match(/\.xlsx?$/i)) {
+    showStatus('statusImport', 'error', '❌ Veuillez importer un fichier Excel (.xlsx)');
+    return;
+  }
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' Ko';
+  document.getElementById('fileInfo').classList.add('show');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb    = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      parseData(rows);
+      showStatus('statusImport', '', '');
+      enableStep(2);
+    } catch(err) {
+      showStatus('statusImport', 'error', '❌ Erreur lors de la lecture : ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ============================================================
+   PARSING
+   ============================================================ */
+function parseData(rows) {
+  if (rows.length < 2) return;
+  const header = rows[0];
+  categoriesData = {};
+
+  rows.slice(1).forEach(row => {
+    const bloc   = row[1];
+    const couleur = (row[2] || '').toString().trim().toUpperCase();
+    const zone   = (row[0] || '').toString().trim();
+    if (!bloc || isNaN(parseFloat(bloc))) return;
+
+    header.forEach((col, i) => {
+      if (i < 3) return;
+      const catName = col ? col.toString().trim() : '';
+      if (!catName
+        || catName.startsWith('NB')
+        || catName.startsWith('Total')
+        || catName.startsWith('Unnamed')
+        || catName === 'NB blocs utilisés') return;
+
+      if (Number(row[i]) === 1) {
+        if (!categoriesData[catName]) categoriesData[catName] = [];
+        categoriesData[catName].push({ bloc: parseInt(bloc), couleur, zone });
+      }
+    });
+  });
+
+  buildCatButtons();
+}
+
+function buildCatButtons() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+  Object.keys(categoriesData).forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn';
+    btn.innerHTML = cat + '<span class="count">' + categoriesData[cat].length + ' blocs</span>';
+    btn.onclick = () => selectCat(cat, btn);
+    grid.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   SÉLECTION CATÉGORIE
+   ============================================================ */
+function selectCat(cat, btn) {
+  selectedCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  enableStep(3);
+}
+
+/* ============================================================
+   UI HELPERS
+   ============================================================ */
+function enableStep(n) {
+  const card = document.getElementById('step' + n + '-card');
+  card.classList.remove('step-disabled');
+  if (n === 3) document.getElementById('btnGenerate').disabled = false;
+}
+
+function showStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'status' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  if (!type) el.style.display = 'none';
+}
+
+function resetAll() {
+  selectedCat    = null;
+  categoriesData = {};
+  fileInput.value = '';
+  document.getElementById('fileInfo').classList.remove('show');
+  document.getElementById('catGrid').innerHTML =
+    '<div style="color:#aaa;font-size:0.88rem;grid-column:1/-1;">Importez d\'abord le fichier Excel.</div>';
+  ['step2-card', 'step3-card'].forEach(id => document.getElementById(id).classList.add('step-disabled'));
+  document.getElementById('btnGenerate').disabled = true;
+  document.getElementById('resultCard').classList.remove('show');
+  showStatus('statusImport', '', '');
+  showStatus('statusGenerate', '', '');
+}
+
+/* ============================================================
+   GÉNÉRATION EXCEL (ExcelJS)
+   ============================================================ */
+document.getElementById('btnGenerate').onclick = generateExcel;
+
+async function generateExcel() {
+  if (!selectedCat || !categoriesData[selectedCat]) {
+    showStatus('statusGenerate', 'error', '❌ Veuillez sélectionner une catégorie.');
+    return;
+  }
+
+  const btn = document.getElementById('btnGenerate');
+  btn.disabled = true;
+  btn.textContent = 'Génération en cours…';
+
+  /* Tri par difficulté puis numéro */
+  const blocs = [...categoriesData[selectedCat]].sort((a, b) => {
+    const da = DIFF_ORDER.indexOf(a.couleur) === -1 ? 99 : DIFF_ORDER.indexOf(a.couleur);
+    const db = DIFF_ORDER.indexOf(b.couleur) === -1 ? 99 : DIFF_ORDER.indexOf(b.couleur);
+    return da !== db ? da - db : a.bloc - b.bloc;
+  });
+
+  const half      = Math.ceil(blocs.length / 2);
+  const leftBlocs = blocs.slice(0, half);
+  const rightBlocs = blocs.slice(half);
+  const maxRows   = Math.max(leftBlocs.length, rightBlocs.length);
+
+  try {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Fiche ' + selectedCat, {
+      pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 1 },
+      pageMargins: { left: 0.4, right: 0.4, top: 0.4, bottom: 0.4, header: 0, footer: 0 },
+    });
+
+    /* Largeurs colonnes : fiche|gap|fiche|gap|fiche */
+    [8,13,8,13, 2, 8,13,8,13, 2, 8,13,8,13].forEach((w, i) => { ws.getColumn(i+1).width = w; });
+
+    /* Hauteurs lignes */
+    [22,22,22,22,18,18,15,22].forEach((h, i) => { ws.getRow(i+1).height = h; });
+    for (let i = 0; i < maxRows; i++) ws.getRow(9+i).height = 22;
+
+    /* Helpers */
+    const argb = hex => 'FF' + hex.replace('#','').toUpperCase();
+
+    const thinBorder = () => ({
+      top:    { style: 'thin', color: { argb: 'FFAAAAAA' } },
+      bottom: { style: 'thin', color: { argb: 'FFAAAAAA' } },
+      left:   { style: 'thin', color: { argb: 'FFAAAAAA' } },
+      right:  { style: 'thin', color: { argb: 'FFAAAAAA' } },
+    });
+
+    function styleCell(cell, { bg='FFFFFFFF', fg='FF000000', bold=false, sz=9, halign='center', valign='middle' } = {}) {
+      cell.font      = { name: 'Arial', size: sz, bold, color: { argb: fg } };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+      cell.alignment = { horizontal: halign, vertical: valign };
+      cell.border    = thinBorder();
+    }
+
+    function headerRow(rowNum, sc, text, bg, fg='FF000000', bold=true, halign='left') {
+      const cell = ws.getCell(rowNum, sc);
+      cell.value = text;
+      styleCell(cell, { bg: argb(bg), fg, bold, sz: 9, halign });
+      ws.mergeCells(rowNum, sc, rowNum, sc + 3);
+    }
+
+    /* Écriture des 3 fiches (colonnes 1, 6, 11) */
+    [1, 6, 11].forEach(sc => {
+
+      /* En-têtes */
+      headerRow(1, sc, 'Numéro de dossard :', 'D9D9D9');
+      headerRow(2, sc, 'Prénom :', 'D9D9D9');
+      headerRow(3, sc, 'Sexe :', 'D9D9D9');
+      headerRow(4, sc, 'Catégorie : ' + selectedCat, 'D9D9D9');
+      headerRow(5, sc, 'Consigne particulière :', 'FFCCCC', 'FFCC0000');
+      headerRow(6, sc, 'Prise finale basse', 'FFCCCC', 'FFCC0000', true, 'center');
+
+      /* Légende difficulté (ligne 7) */
+      [
+        [0, 'FFFF00', '000000', 'Facile'],
+        [1, 'FFC000', '000000', 'Peu diff.'],
+        [2, '00B050', 'FFFFFF', 'Moyen'],
+        [3, '00B0F0', '000000', 'Difficile'],
+      ].forEach(([co, bg, fg, lbl]) => {
+        const cell = ws.getCell(7, sc + co);
+        cell.value = lbl;
+        styleCell(cell, { bg: argb(bg), fg: argb(fg), bold: true, sz: 7 });
+      });
+
+      /* En-tête colonnes (ligne 8) */
+      [
+        [0, 'N° bloc',    'BDD7EE'],
+        [1, 'Validation', 'BDD7EE'],
+        [2, 'N° bloc',    'BDD7EE'],
+        [3, 'Validation', 'BDD7EE'],
+      ].forEach(([co, txt, bg]) => {
+        const cell = ws.getCell(8, sc + co);
+        cell.value = txt;
+        styleCell(cell, { bg: argb(bg), bold: true, sz: 9 });
+      });
+
+      /* Blocs (lignes 9+) */
+      for (let i = 0; i < maxRows; i++) {
+        const rowNum = 9 + i;
+
+        if (i < leftBlocs.length) {
+          const { bloc, couleur } = leftBlocs[i];
+          const cm = COLOR_MAP[couleur] || { bg: 'FFFFFF', font: '000000' };
+          const c0 = ws.getCell(rowNum, sc);
+          c0.value = bloc;
+          styleCell(c0, { bg: argb(cm.bg), fg: argb(cm.font), bold: true, sz: 11 });
+          const c1 = ws.getCell(rowNum, sc + 1);
+          c1.value = '';
+          styleCell(c1, { bg: 'FFFFFFFF' });
+        } else {
+          const c0 = ws.getCell(rowNum, sc);     c0.value = ''; styleCell(c0, { bg: 'FFF5F5F5' });
+          const c1 = ws.getCell(rowNum, sc + 1); c1.value = ''; styleCell(c1, { bg: 'FFF5F5F5' });
+        }
+
+        if (i < rightBlocs.length) {
+          const { bloc, couleur } = rightBlocs[i];
+          const cm = COLOR_MAP[couleur] || { bg: 'FFFFFF', font: '000000' };
+          const c2 = ws.getCell(rowNum, sc + 2);
+          c2.value = bloc;
+          styleCell(c2, { bg: argb(cm.bg), fg: argb(cm.font), bold: true, sz: 11 });
+          const c3 = ws.getCell(rowNum, sc + 3);
+          c3.value = '';
+          styleCell(c3, { bg: 'FFFFFFFF' });
+        } else {
+          const c2 = ws.getCell(rowNum, sc + 2); c2.value = ''; styleCell(c2, { bg: 'FFF5F5F5' });
+          const c3 = ws.getCell(rowNum, sc + 3); c3.value = ''; styleCell(c3, { bg: 'FFF5F5F5' });
+        }
+      }
+    });
+
+    /* Téléchargement */
+    const fname  = 'fiche_bloc_' + selectedCat.replace(/ /g, '_') + '_2025.xlsx';
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url    = URL.createObjectURL(blob);
+
+    const dl  = document.getElementById('downloadLink');
+    dl.href   = url;
+    dl.download = fname;
+
+    showResult(blocs, fname);
+    showStatus('statusGenerate', '', '');
+
+  } catch(err) {
+    showStatus('statusGenerate', 'error', '❌ Erreur : ' + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Générer la fiche bloc';
+  }
+}
+
+/* ============================================================
+   AFFICHAGE DU RÉSULTAT
+   ============================================================ */
+function showResult(blocs, fname) {
+  const resultCard = document.getElementById('resultCard');
+  resultCard.classList.add('show');
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  document.getElementById('previewInfo').innerHTML = `
+    <span class="info-pill">Catégorie : <strong>${selectedCat}</strong></span>
+    <span class="info-pill">Blocs : <strong>${blocs.length}</strong></span>
+    <span class="info-pill">3 fiches par page</span>
+    <span class="info-pill">Fichier : <strong>${fname}</strong></span>
+  `;
+
+  /* Légende */
+  const usedColors   = [...new Set(blocs.map(b => b.couleur))];
+  const sortedColors = DIFF_ORDER.filter(c => usedColors.includes(c));
+  let legendHtml = '<div class="legend"><div class="legend-title">Code couleur — difficulté</div>';
+  sortedColors.forEach(col => {
+    const cm = COLOR_MAP[col] || { css: '#eee', label: col };
+    legendHtml += `<div class="legend-item">
+      <div class="legend-swatch" style="background:${cm.css}"></div>
+      <span>${cm.label || col}</span>
+    </div>`;
+  });
+  legendHtml += '</div>';
+
+  /* Tableau */
+  let html = '<table><tr><th>#</th><th>N° Bloc</th><th>Difficulté</th><th>Zone</th></tr>';
+  blocs.forEach((b, idx) => {
+    const cm  = COLOR_MAP[b.couleur] || { css: '#eee', font: '000000', label: b.couleur };
+    const badge = `<span class="diff-badge" style="background:${cm.css};color:#${cm.font}">${cm.label || b.couleur}</span>`;
+    html += `<tr>
+      <td style="color:#aaa;font-size:0.78rem;">${idx + 1}</td>
+      <td style="font-weight:700;font-size:0.9rem;">${b.bloc}</td>
+      <td>${badge}</td>
+      <td style="color:#666;font-size:0.82rem;">${b.zone || '—'}</td>
+    </tr>`;
+  });
+  html += '</table>';
+
+  document.getElementById('blocPreview').innerHTML =
+    `<p style="font-size:0.82rem;color:#666;margin-bottom:0.5rem;">Aperçu des ${blocs.length} blocs sélectionnés :</p>`
+    + legendHtml + html;
+}
+</script>
+</body>
+</html>

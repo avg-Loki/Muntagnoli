@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Muntagnoli — Gestion des inscrits</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  /* ---- Filtres ---- */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+  }
+  .filter-btn {
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-muted);
+  }
+  .filter-btn:hover  { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { border-color: var(--accent); background: var(--accent); color: white; }
+
+  /* ---- Stats cards ---- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-card .val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--navy);
+    display: block;
+    line-height: 1;
+  }
+  .stat-card .lbl {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ---- Table ---- */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+  }
+  thead th {
+    background: var(--navy);
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th:hover { background: var(--navy-mid); }
+  thead th .sort-icon { opacity: 0.4; margin-left: 4px; font-size: 0.7rem; }
+  thead th.sorted .sort-icon { opacity: 1; }
+
+  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+  tbody tr:hover { background: #f8f9ff; }
+  tbody td { padding: 9px 14px; }
+
+  .dossard-cell {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--accent);
+    min-width: 50px;
+  }
+  .nom-cell { font-weight: 600; }
+  .prenom-cell { color: var(--text-muted); }
+
+  .cat-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .cat-U8   { background: #fef9c3; color: #854d0e; }
+  .cat-U10  { background: #dcfce7; color: #166534; }
+  .cat-U12  { background: #dbeafe; color: #1e40af; }
+  .cat-U14  { background: #ede9fe; color: #5b21b6; }
+  .cat-U16  { background: #fce7f3; color: #9d174d; }
+  .cat-U18  { background: #ffedd5; color: #9a3412; }
+  .cat-U20  { background: #e0f2fe; color: #075985; }
+  .cat-ADULTE { background: #f1f5f9; color: #475569; }
+
+  .sexe-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .sexe-F { background: #fce7f3; color: #9d174d; }
+  .sexe-H { background: #dbeafe; color: #1e40af; }
+
+  /* ---- Avertissement ---- */
+  .warning-row td {
+    background: #fffbeb !important;
+    border-left: 3px solid #f59e0b;
+  }
+
+  /* ---- Actions ---- */
+  .action-bar {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem 0.9rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+
+  /* ---- Alertes ---- */
+  .alert {
+    padding: 0.9rem 1.2rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .alert-warn { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+  .alert-info { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+  .alert ul { margin-top: 4px; padding-left: 1.2rem; }
+  .alert li { margin-top: 2px; }
+
+  /* ---- Groupe section headers ---- */
+  .group-header td {
+    background: var(--bg) !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 12px 14px 6px;
+    border-bottom: none !important;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-faint);
+  }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.8rem; display: block; }
+
+  @media (max-width: 600px) {
+    thead th:nth-child(4),
+    tbody td:nth-child(4),
+    thead th:nth-child(7),
+    tbody td:nth-child(7) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <a href="index.html" class="logo">G</a>
+  <span class="brand">I <span>Muntagnoli</span></span>
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="fiche-bloc.html">Fiche Bloc</a>
+    <a href="inscrits.html" class="active">Inscrits</a>
+  
+    <a href="resultats.html">Résultats</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <!-- ÉTAPE 1 : Import -->
+  <div class="card">
+    <h2><span class="step">1</span> Importer l'export HelloAsso</h2>
+
+    <div class="drop-zone" id="dropZone">
+      <span class="icon">📂</span>
+      <p><strong>Glissez-déposez</strong> votre fichier ici</p>
+      <p style="margin-top:6px;">ou <strong style="color:var(--accent);cursor:pointer;" onclick="document.getElementById('fileInput').click()">cliquez pour parcourir</strong></p>
+      <p style="margin-top:8px;font-size:0.78rem;color:#aaa;">Export CSV HelloAsso (.csv) séparé par point-virgule</p>
+      <input type="file" id="fileInput" accept=".csv">
+    </div>
+
+    <div class="file-info" id="fileInfo">
+      <span class="check">✓</span>
+      <div>
+        <div class="fname" id="fileName">—</div>
+        <div class="fsize" id="fileSize">—</div>
+      </div>
+    </div>
+
+    <div class="status" id="statusImport"></div>
+  </div>
+
+  <!-- RÉSULTATS -->
+  <div id="resultsSection" style="display:none;">
+
+    <!-- Alertes -->
+    <div id="alertsBox"></div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="action-bar">
+        <input type="text" class="search-input" id="searchInput" placeholder="Rechercher un nom, prénom, club…">
+        <div class="filters" id="catFilters"></div>
+        <button class="btn btn-dark" onclick="exportCSV()">⬇ Exporter CSV</button>
+      </div>
+
+      <div class="table-wrap">
+        <table id="mainTable">
+          <thead>
+            <tr>
+              <th onclick="sortBy('DOSSARD')" data-col="DOSSARD"># <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('NOM')" data-col="NOM">Nom <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('PRENOM')" data-col="PRENOM">Prénom <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('DATE')" data-col="DATE">Année <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('SEXE')" data-col="SEXE">Sexe <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('CLUB')" data-col="CLUB">Club <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('AGE_2025')" data-col="AGE_2025">Âge <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('CATEGORIE')" data-col="CATEGORIE">Catégorie <span class="sort-icon">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTES
+   ============================================================ */
+const YEAR_TO_CAT = {
+  '2019': 'U8',  '2018': 'U8',
+  '2017': 'U10', '2016': 'U10',
+  '2015': 'U12', '2014': 'U12',
+  '2013': 'U14', '2012': 'U14',
+  '2011': 'U16', '2010': 'U16',
+  '2009': 'U18', '2008': 'U18',
+  '2007': 'U20', '2006': 'U20',
+};
+
+const CAT_ORDER  = ['U8','U10','U12','U14','U16','U18','U20','ADULTE'];
+const SEXE_ORDER = ['F','H'];
+
+// Dossard start number per group
+const DOSSARD_STARTS = {
+  'U8-F':1,   'U8-H':11,
+  'U10-F':21, 'U10-H':31,
+  'U12-F':41, 'U12-H':61,
+  'U14-F':81, 'U14-H':101,
+  'U16-F':121,'U16-H':141,
+  'U18-F':161,'U18-H':181,
+  'U20-F':201,'U20-H':221,
+  'ADULTE-F':241,'ADULTE-H':261,
+};
+
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+let allAthletes   = [];
+let filteredAthletes = [];
+let activeFilter  = 'TOUS';
+let sortCol       = 'DOSSARD';
+let sortAsc       = true;
+let searchTerm    = '';
+
+/* ============================================================
+   IMPORT
+   ============================================================ */
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+dropZone.addEventListener('click', () => fileInput.click());
+
+function handleFile(file) {
+  if (!file.name.match(/\.csv$/i)) {
+    showStatus('❌ Veuillez importer un fichier CSV.', 'error');
+    return;
+  }
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent  = (file.size / 1024).toFixed(1) + ' Ko';
+  document.getElementById('fileInfo').classList.add('show');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      parseCSV(e.target.result);
+      showStatus('', '');
+    } catch(err) {
+      showStatus('❌ Erreur : ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+/* ============================================================
+   PARSING CSV
+   ============================================================ */
+function parseCSV(text) {
+  // Remove BOM
+  text = text.replace(/^\uFEFF/, '');
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) throw new Error('Fichier vide ou invalide.');
+
+  // Parse header
+  const headers = splitCSVLine(lines[0]);
+  const COL = {};
+  headers.forEach((h, i) => { COL[h.trim()] = i; });
+
+  // Required columns check
+  const required = ['Nom participant','Prénom participant','Catégorie (année de naissance)','sexe','club ou organisme','Statut de la commande'];
+  const missing = required.filter(c => COL[c] === undefined);
+  if (missing.length) throw new Error('Colonnes manquantes : ' + missing.join(', '));
+
+  const alerts = [];
+  const athletes = [];
+
+  // Dossard counters per group
+  const counters = {...DOSSARD_STARTS};
+
+  // Parse rows, skip header
+  const rows = lines.slice(1).map(l => splitCSVLine(l));
+
+  // Filter validated only
+  const valid = rows.filter(r => (r[COL['Statut de la commande']] || '').trim() === 'Validé');
+
+  // Sort by name for consistent dossard assignment
+  valid.sort((a, b) => {
+    const catA = YEAR_TO_CAT[a[COL['Catégorie (année de naissance)']]?.trim()] || 'ADULTE';
+    const catB = YEAR_TO_CAT[b[COL['Catégorie (année de naissance)']]?.trim()] || 'ADULTE';
+    const sexeA = (a[COL['sexe']] || '').trim();
+    const sexeB = (b[COL['sexe']] || '').trim();
+    const nomA  = (a[COL['Nom participant']] || '').trim().toUpperCase();
+    const nomB  = (b[COL['Nom participant']] || '').trim().toUpperCase();
+    const ci = CAT_ORDER.indexOf(catA) - CAT_ORDER.indexOf(catB);
+    if (ci !== 0) return ci;
+    const si = SEXE_ORDER.indexOf(sexeA) - SEXE_ORDER.indexOf(sexeB);
+    if (si !== 0) return si;
+    return nomA.localeCompare(nomB);
+  });
+
+  valid.forEach(row => {
+    let nom    = (row[COL['Nom participant']]    || '').trim();
+    let prenom = (row[COL['Prénom participant']] || '').trim();
+    const annee = (row[COL['Catégorie (année de naissance)']] || '').trim();
+    const sexe  = (row[COL['sexe']] || '').trim();
+    const club  = (row[COL['club ou organisme']] || '').trim();
+
+    if (!nom && !prenom) return;
+
+    // Detect NOM/PRENOM inversion (heuristic: if prenom looks like a surname)
+    // HelloAsso sometimes inverts them — flag as warning
+    const warn = [];
+
+    const cat    = YEAR_TO_CAT[annee] || 'ADULTE';
+    const age    = annee.match(/^\d{4}$/) ? 2025 - parseInt(annee) : null;
+    const key    = cat + '-' + sexe;
+    const dossard = counters[key] !== undefined ? counters[key]++ : null;
+
+    athletes.push({
+      DOSSARD:   dossard,
+      NOM:       nom.toUpperCase(),
+      PRENOM:    toTitleCase(prenom),
+      DATE:      annee.match(/^\d{4}$/) ? parseInt(annee) : annee,
+      SEXE:      sexe,
+      CLUB:      club,
+      AGE_2025:  age,
+      CATEGORIE: cat,
+      _warn:     warn,
+    });
+  });
+
+  // Detect athletes without dossard (unknown category)
+  const noDossard = athletes.filter(a => a.DOSSARD === null);
+  if (noDossard.length) {
+    alerts.push({
+      type: 'warn',
+      title: `${noDossard.length} athlète(s) sans catégorie reconnue`,
+      items: noDossard.map(a => `${a.NOM} ${a.PRENOM} (année: ${a.DATE}, sexe: ${a.SEXE})`)
+    });
+  }
+
+  allAthletes = athletes;
+  renderAll(alerts);
+}
+
+function splitCSVLine(line) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQuote = !inQuote; }
+    else if (c === ';' && !inQuote) { result.push(cur.trim()); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function toTitleCase(str) {
+  return str.toLowerCase().replace(/(?:^|[\s\-'])(\w)/g, c => c.toUpperCase());
+}
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+function renderAll(alerts = []) {
+  document.getElementById('resultsSection').style.display = 'block';
+  renderAlerts(alerts);
+  renderStats();
+  renderFilters();
+  applyFiltersAndRender();
+}
+
+function renderAlerts(alerts) {
+  const box = document.getElementById('alertsBox');
+  if (!alerts.length) { box.innerHTML = ''; return; }
+  box.innerHTML = alerts.map(a => `
+    <div class="alert alert-${a.type === 'warn' ? 'warn' : 'info'}">
+      <span>${a.type === 'warn' ? '⚠️' : 'ℹ️'}</span>
+      <div>
+        <strong>${a.title}</strong>
+        ${a.items ? '<ul>' + a.items.map(i => `<li>${i}</li>`).join('') + '</ul>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStats() {
+  const total = allAthletes.length;
+  const bycat = {};
+  allAthletes.forEach(a => { bycat[a.CATEGORIE] = (bycat[a.CATEGORIE] || 0) + 1; });
+  const clubs = new Set(allAthletes.map(a => a.CLUB)).size;
+  const femmes = allAthletes.filter(a => a.SEXE === 'F').length;
+
+  let html = `
+    <div class="stat-card"><span class="val">${total}</span><div class="lbl">Inscrits</div></div>
+    <div class="stat-card"><span class="val">${femmes}</span><div class="lbl">Féminines</div></div>
+    <div class="stat-card"><span class="val">${total - femmes}</span><div class="lbl">Masculins</div></div>
+    <div class="stat-card"><span class="val">${clubs}</span><div class="lbl">Clubs</div></div>
+  `;
+  CAT_ORDER.forEach(cat => {
+    if (bycat[cat]) html += `<div class="stat-card"><span class="val">${bycat[cat]}</span><div class="lbl">${cat}</div></div>`;
+  });
+  document.getElementById('statsRow').innerHTML = html;
+}
+
+function renderFilters() {
+  const cats = ['TOUS', ...CAT_ORDER.filter(c => allAthletes.some(a => a.CATEGORIE === c))];
+  document.getElementById('catFilters').innerHTML = cats.map(c =>
+    `<button class="filter-btn ${c === activeFilter ? 'active' : ''}" onclick="setFilter('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setFilter(cat) {
+  activeFilter = cat;
+  renderFilters();
+  applyFiltersAndRender();
+}
+
+function applyFiltersAndRender() {
+  let list = [...allAthletes];
+
+  // Category filter
+  if (activeFilter !== 'TOUS') list = list.filter(a => a.CATEGORIE === activeFilter);
+
+  // Search filter
+  if (searchTerm) {
+    const s = searchTerm.toLowerCase();
+    list = list.filter(a =>
+      a.NOM.toLowerCase().includes(s) ||
+      a.PRENOM.toLowerCase().includes(s) ||
+      a.CLUB.toLowerCase().includes(s)
+    );
+  }
+
+  // Sort
+  list.sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (va === null || va === undefined) va = 9999;
+    if (vb === null || vb === undefined) vb = 9999;
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+
+  filteredAthletes = list;
+  renderTable(list);
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('tableBody');
+
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><span class="icon">🔍</span>Aucun résultat</td></tr>`;
+    return;
+  }
+
+  let html = '';
+  let lastGroup = null;
+
+  list.forEach(a => {
+    const group = a.CATEGORIE + ' — ' + (a.SEXE === 'F' ? 'Féminin' : 'Masculin');
+
+    // Group separator (only when sorted by default / dossard / categorie)
+    if ((sortCol === 'DOSSARD' || sortCol === 'CATEGORIE') && activeFilter === 'TOUS' && group !== lastGroup) {
+      html += `<tr class="group-header"><td colspan="8">${group}</td></tr>`;
+      lastGroup = group;
+    }
+
+    const catClass  = 'cat-' + a.CATEGORIE.replace(/\s/g,'');
+    const sexeClass = 'sexe-' + a.SEXE;
+    const warnClass = a._warn && a._warn.length ? 'warning-row' : '';
+
+    html += `<tr class="${warnClass}">
+      <td class="dossard-cell">${a.DOSSARD ?? '—'}</td>
+      <td class="nom-cell">${a.NOM}</td>
+      <td class="prenom-cell">${a.PRENOM}</td>
+      <td>${a.DATE ?? '—'}</td>
+      <td><span class="sexe-badge ${sexeClass}">${a.SEXE}</span></td>
+      <td>${a.CLUB}</td>
+      <td>${a.AGE_2025 ?? '—'}</td>
+      <td><span class="cat-badge ${catClass}">${a.CATEGORIE}</span></td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+
+  // Update sort icons
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sorted');
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = '↕';
+    if (th.dataset.col === sortCol) {
+      th.classList.add('sorted');
+      if (icon) icon.textContent = sortAsc ? '↑' : '↓';
+    }
+  });
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  applyFiltersAndRender();
+}
+
+// Search
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchTerm = e.target.value.trim();
+  applyFiltersAndRender();
+});
+
+/* ============================================================
+   EXPORT CSV
+   ============================================================ */
+function exportCSV() {
+  if (!filteredAthletes.length) return;
+
+  const cols = ['DOSSARD','NOM','PRENOM','DATE','SEXE','CLUB','AGE_2025','CATEGORIE'];
+  const header = cols.join(';');
+  const rows = filteredAthletes.map(a => cols.map(c => {
+    const v = a[c] ?? '';
+    return String(v).includes(';') ? `"${v}"` : v;
+  }).join(';'));
+
+  const csv = '\uFEFF' + [header, ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href     = url;
+  link.download = 'INSCRITS_' + (activeFilter === 'TOUS' ? 'TOUS' : activeFilter) + '.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function showStatus(msg, type) {
+  const el = document.getElementById('statusImport');
+  el.className = 'status' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  el.style.display = msg ? '' : 'none';
+}
+</script>
+</body>
+</html>
