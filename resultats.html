@@ -364,19 +364,32 @@ function parseInscrits(text) {
   });
 }
 
-function matchInscritCategory(inscritCat, blocCat) {
-  // Normaliser les catégories pour la comparaison
+function matchInscritCategory(inscritCat, blocCat, sexe) {
   var inscrit = (inscritCat || '').toString().trim().toUpperCase();
-  var bloc = blocCat.toString().trim().toUpperCase();
-  
+  var bloc    = (blocCat    || '').toString().trim().toUpperCase();
+
   // Correspondance exacte
   if (inscrit === bloc) return true;
-  
-  // Gestion des variantes M/D (ex: "U8 M" -> "U8")
-  // L'inscrit peut avoir " M" ou " D" à la fin, il faut l'enlever pour matcher avec le bloc
-  var inscritBase = inscrit.replace(/\s+[MD]$/, ''); // Enlève " M" ou " D" à la fin
-  if (inscritBase === bloc) return true;
-  
+
+  // Cas : bloc = "U14 F" ou "U14 M" (selection_bloc.xlsx)
+  //        inscrit = "U14" + SEXE = "F" ou "H"
+  var blocParts = bloc.split(' ');
+  if (blocParts.length === 2) {
+    var blocBase   = blocParts[0];                        // "U14"
+    var blocGender = blocParts[1];                        // "F" ou "M"
+    var inscritBase = inscrit.replace(/\s+[MDFmdf]$/, ''); // enlève suffixe éventuel
+    if (inscritBase === blocBase) {
+      // sexe de l'inscrit : F=F, H ou M = M
+      var inscritSexe = (sexe || '').toString().trim().toUpperCase();
+      var inscritGender = (inscritSexe === 'F') ? 'F' : 'M';
+      return inscritGender === blocGender;
+    }
+  }
+
+  // Cas : inscrit = "U14 M" ou "U14 D", bloc = "U14 M" ou "U14 F"
+  var inscritBase2 = inscrit.replace(/\s+[MD]$/, '');
+  if (inscritBase2 === bloc) return true;
+
   return false;
 }
 
@@ -388,7 +401,7 @@ function renderCategoriesPreview() {
   Object.keys(categoriesData).forEach(function(cat) {
     var catInscrits = inscritsData.filter(function(a){ 
       var inscritCat = (a.CATEGORIE || '').toString().trim();
-      return matchInscritCategory(inscritCat, cat);
+      return matchInscritCategory(inscritCat, cat, a.SEXE);
     });
     html += '<div class="cat-box" style="background:'+(CAT_COLORS[cat]||'#f1f5f9')+'">'
           + '<div class="cname">'+cat+'</div>'
@@ -404,7 +417,7 @@ function saveCategoryDataToJsonBin() {
   Object.keys(categoriesData).forEach(function(cat) {
     var catInscrits = inscritsData.filter(function(a){ 
       var inscritCat = (a.CATEGORIE || '').toString().trim();
-      return matchInscritCategory(inscritCat, cat);
+      return matchInscritCategory(inscritCat, cat, a.SEXE);
     });
     categoryData[cat] = {
       blocs: categoriesData[cat],
@@ -444,7 +457,7 @@ function renderQRCodes() {
     var blocs = categoriesData[cat];
     var catInscrits = inscritsData.filter(function(a){ 
       var inscritCat = (a.CATEGORIE || '').toString().trim();
-      return matchInscritCategory(inscritCat, cat);
+      return matchInscritCategory(inscritCat, cat, a.SEXE);
     });
 
     // QR code URL now only contains cat, k, b - blocs & inscrits are fetched from JSONBin
