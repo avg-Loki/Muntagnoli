@@ -365,30 +365,40 @@ function parseInscrits(text) {
 }
 
 function matchInscritCategory(inscritCat, blocCat, sexe) {
-  var inscrit = (inscritCat || '').toString().trim().toUpperCase();
-  var bloc    = (blocCat    || '').toString().trim().toUpperCase();
+  // Normalise une chaine : trim + uppercase + enleve les S finaux (ADULTES->ADULTE)
+  function norm(s) { return (s||'').toString().trim().toUpperCase().replace(/S$/, ''); }
 
-  // Correspondance exacte
-  if (inscrit === bloc) return true;
+  var ins  = norm(inscritCat);  // ex: "U14 D", "U8 M", "ADULTE D"
+  var bloc = norm(blocCat);     // ex: "U14 F", "U8", "ADULTE F"
 
-  // Cas : bloc = "U14 F" ou "U14 M" (selection_bloc.xlsx)
-  //        inscrit = "U14" + SEXE = "F" ou "H"
-  var blocParts = bloc.split(' ');
-  if (blocParts.length === 2) {
-    var blocBase   = blocParts[0];                        // "U14"
-    var blocGender = blocParts[1];                        // "F" ou "M"
-    var inscritBase = inscrit.replace(/\s+[MDFmdf]$/, ''); // enlève suffixe éventuel
-    if (inscritBase === blocBase) {
-      // sexe de l'inscrit : F=F, H ou M = M
-      var inscritSexe = (sexe || '').toString().trim().toUpperCase();
-      var inscritGender = (inscritSexe === 'F') ? 'F' : 'M';
-      return inscritGender === blocGender;
-    }
+  // Correspondance exacte apres normalisation
+  if (ins === bloc) return true;
+
+  // Decompose le bloc en base + genre (ex: "U14 F" -> base="U14", genre="F")
+  var blocParts  = bloc.split(' ');
+  var blocBase   = blocParts[0];               // "U14" ou "U8"
+  var blocGenre  = blocParts[1] || null;       // "F", "M" ou null
+
+  // Decompose l'inscrit en base + genre (ex: "U14 D" -> base="U14", genre="D")
+  var insParts   = ins.split(' ');
+  var insBase    = insParts[0];                // "U14"
+  var insGenre   = insParts[1] || null;        // "D", "M" ou null
+
+  // Les bases doivent correspondre
+  if (insBase !== blocBase) return false;
+
+  // Si le bloc n'a pas de genre -> il correspond a tous les inscrits de cette base
+  if (!blocGenre) return true;
+
+  // Correspondance genre :
+  // bloc "F" correspond a inscrit "D" (Dames) ou sexe "F"
+  // bloc "M" correspond a inscrit "M" (Messieurs) ou sexe "H"
+  if (blocGenre === 'F') {
+    return insGenre === 'D' || insGenre === 'F' || norm(sexe) === 'F';
   }
-
-  // Cas : inscrit = "U14 M" ou "U14 D", bloc = "U14 M" ou "U14 F"
-  var inscritBase2 = inscrit.replace(/\s+[MD]$/, '');
-  if (inscritBase2 === bloc) return true;
+  if (blocGenre === 'M') {
+    return insGenre === 'M' || norm(sexe) === 'H' || norm(sexe) === 'M';
+  }
 
   return false;
 }
@@ -453,7 +463,21 @@ function renderQRCodes() {
   placeholder.style.display = 'none';
   grid.innerHTML = '';
 
-  Object.keys(categoriesData).forEach(function(cat) {
+  var CAT_ORDER_QR = ['U8 D','U8 M','U10 D','U10 M','U12 D','U12 M',
+  'U14 D','U14 M','U16 D','U16 M','U18 D','U18 M','U20 D','U20 M','ADULTE D','ADULTE M',
+  'U8','U10','U12','U14 F','U14 M','U16','U18','U20','ADULTES F','ADULTES M'];
+
+function sortCats(keys) {
+  return keys.slice().sort(function(a, b) {
+    var ia = CAT_ORDER_QR.indexOf(a);
+    var ib = CAT_ORDER_QR.indexOf(b);
+    if (ia === -1) ia = 99;
+    if (ib === -1) ib = 99;
+    return ia - ib;
+  });
+}
+
+sortCats(Object.keys(categoriesData)).forEach(function(cat) {
     var blocs = categoriesData[cat];
     var catInscrits = inscritsData.filter(function(a){ 
       var inscritCat = (a.CATEGORIE || '').toString().trim();
