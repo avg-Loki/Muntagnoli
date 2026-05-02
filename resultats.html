@@ -365,39 +365,34 @@ function parseInscrits(text) {
 }
 
 function matchInscritCategory(inscritCat, blocCat, sexe) {
-  // Normalise une chaine : trim + uppercase + enleve les S finaux (ADULTES->ADULTE)
-  function norm(s) { return (s||'').toString().trim().toUpperCase().replace(/S$/, ''); }
+  // Normalise un mot : trim + uppercase + enleve S final (ADULTES->ADULTE)
+  function normWord(s) { return (s||'').trim().toUpperCase().replace(/S$/, ''); }
 
-  var ins  = norm(inscritCat);  // ex: "U14 D", "U8 M", "ADULTE D"
-  var bloc = norm(blocCat);     // ex: "U14 F", "U8", "ADULTE F"
+  // Decompose "ADULTES F" -> base="ADULTE", genre="F"
+  // Decompose "U14 D"     -> base="U14",    genre="D"
+  function decompose(cat) {
+    var parts = (cat||'').trim().toUpperCase().split(/\s+/);
+    return { base: normWord(parts[0]), genre: parts[1] || null };
+  }
 
-  // Correspondance exacte apres normalisation
-  if (ins === bloc) return true;
-
-  // Decompose le bloc en base + genre (ex: "U14 F" -> base="U14", genre="F")
-  var blocParts  = bloc.split(' ');
-  var blocBase   = blocParts[0];               // "U14" ou "U8"
-  var blocGenre  = blocParts[1] || null;       // "F", "M" ou null
-
-  // Decompose l'inscrit en base + genre (ex: "U14 D" -> base="U14", genre="D")
-  var insParts   = ins.split(' ');
-  var insBase    = insParts[0];                // "U14"
-  var insGenre   = insParts[1] || null;        // "D", "M" ou null
+  var ins  = decompose(inscritCat);
+  var bloc = decompose(blocCat);
 
   // Les bases doivent correspondre
-  if (insBase !== blocBase) return false;
+  if (ins.base !== bloc.base) return false;
 
-  // Si le bloc n'a pas de genre -> il correspond a tous les inscrits de cette base
-  if (!blocGenre) return true;
+  // Pas de genre dans le bloc -> correspond a tout le monde
+  if (!bloc.genre) return true;
 
   // Correspondance genre :
-  // bloc "F" correspond a inscrit "D" (Dames) ou sexe "F"
-  // bloc "M" correspond a inscrit "M" (Messieurs) ou sexe "H"
-  if (blocGenre === 'F') {
-    return insGenre === 'D' || insGenre === 'F' || norm(sexe) === 'F';
+  // bloc "F" -> inscrit "D" (Dames) ou sexe "F"
+  // bloc "M" -> inscrit "M" (Messieurs) ou sexe "H"
+  var s = (sexe||'').trim().toUpperCase();
+  if (bloc.genre === 'F') {
+    return ins.genre === 'D' || ins.genre === 'F' || s === 'F';
   }
-  if (blocGenre === 'M') {
-    return insGenre === 'M' || norm(sexe) === 'H' || norm(sexe) === 'M';
+  if (bloc.genre === 'M') {
+    return ins.genre === 'M' || s === 'H' || s === 'M';
   }
 
   return false;
