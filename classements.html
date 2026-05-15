@@ -6,6 +6,14 @@
 <title>I Muntagnoli - Classements</title>
 <link rel="stylesheet" href="styles.css">
 <style>
+/* ---- Tabs ---- */
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:1.5rem}
+.tab{padding:.65rem 1.2rem;border:none;background:none;font-size:.9rem;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--navy)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
 /* ---- Config ---- */
 .config-banner{background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--radius-md);padding:1rem 1.4rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:12px;font-size:.88rem}
 .config-banner.ok{background:var(--green-bg);border-color:var(--green-border)}
@@ -13,6 +21,16 @@
 .config-input{padding:.45rem .8rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;width:100%;max-width:400px}
 .config-input:focus{border-color:var(--accent)}
 .btn-config{margin-top:.4rem;padding:.45rem 1.2rem;background:var(--navy);color:white;border:none;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer}
+
+/* ---- Import zone ---- */
+.import-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:640px){.import-row{grid-template-columns:1fr}}
+.mini-drop{border:2px dashed var(--border);border-radius:10px;padding:1.2rem 1rem;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfc;font-size:.85rem;color:var(--text-muted)}
+.mini-drop:hover{border-color:var(--accent);background:#fff5f5}
+.mini-drop .icon{font-size:1.5rem;display:block;margin-bottom:.4rem}
+.mini-drop input{display:none}
+.mini-drop.loaded{border-color:var(--green-border);background:var(--green-bg);color:var(--green-text)}
+.mini-drop .status{font-size:.72rem;margin-top:.3rem;color:#666}
 
 /* ---- Filtres ---- */
 .filter-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem;align-items:center}
@@ -26,26 +44,16 @@
 .rank-table tbody tr{border-bottom:1px solid #f0f0f0;transition:background .1s}
 .rank-table tbody tr:hover{background:#f8f9ff}
 .rank-table tbody td{padding:10px 14px;vertical-align:middle}
-
-/* Podium */
-.rank-1 td:first-child{color:#f59e0b;font-size:1.3rem}
-.rank-2 td:first-child{color:#94a3b8;font-size:1.2rem}
-.rank-3 td:first-child{color:#cd7c2f;font-size:1.1rem}
-.rank-num{font-weight:800;font-size:.9rem;color:var(--accent)}
-
+.rank-1 td:first-child{font-size:1.3rem}
+.rank-2 td:first-child{font-size:1.2rem}
+.rank-3 td:first-child{font-size:1.1rem}
 .score-val{font-weight:800;font-size:1rem;color:var(--navy)}
 .score-sub{font-size:.75rem;color:var(--text-muted);display:block}
-
-/* Barres de couleur blocs */
 .blocs-bar{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
 .bloc-chip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:.65rem;font-weight:800;border:1px solid rgba(0,0,0,.1)}
-
-/* Badge sexe */
 .sexe-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.7rem;font-weight:700}
-.sexe-F{background:#fce7f3;color:#9d174d}
-.sexe-H{background:#dbeafe;color:#1e40af}
-.sexe-D{background:#fce7f3;color:#9d174d}
-.sexe-M{background:#dbeafe;color:#1e40af}
+.sexe-F,.sexe-D{background:#fce7f3;color:#9d174d}
+.sexe-H,.sexe-M{background:#dbeafe;color:#1e40af}
 
 /* ---- Stats recap ---- */
 .recap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.8rem;margin-bottom:1.2rem}
@@ -53,23 +61,35 @@
 .recap-card .val{font-size:1.4rem;font-weight:800;color:var(--navy);display:block}
 .recap-card .lbl{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}
 
-/* ---- Tableau blocs ---- */
+/* ---- Historique ---- */
+.history-list{display:flex;flex-direction:column;gap:.8rem}
+.history-item{background:white;border-radius:var(--radius-md);padding:1.1rem 1.4rem;border:1.5px solid var(--border);display:flex;align-items:center;gap:1rem;cursor:pointer;transition:all .15s}
+.history-item:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.history-item .hi-icon{font-size:1.6rem;flex-shrink:0}
+.history-item .hi-info{flex:1}
+.history-item .hi-name{font-weight:700;font-size:.95rem;color:var(--navy)}
+.history-item .hi-meta{font-size:.78rem;color:var(--text-muted);margin-top:2px}
+.history-item .hi-actions{display:flex;gap:.5rem;flex-shrink:0}
+.btn-load{padding:.4rem .9rem;background:var(--accent);color:white;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer}
+.btn-del{padding:.4rem .7rem;background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer}
+.btn-del:hover{background:#fca5a5}
+.empty-history{text-align:center;padding:2.5rem;color:var(--text-faint);font-size:.9rem}
+
+/* ---- Blocs table ---- */
 .blocs-table{width:100%;border-collapse:collapse;font-size:.82rem}
 .blocs-table thead th{background:#f4f5f8;color:var(--navy);padding:8px 12px;text-align:left;font-size:.74rem;font-weight:700;text-transform:uppercase}
 .blocs-table tbody tr{border-bottom:1px solid #f0f0f0}
 .blocs-table tbody tr:hover{background:#f8f9ff}
 .blocs-table tbody td{padding:7px 12px}
-.diff-bar{height:8px;border-radius:4px;display:inline-block;vertical-align:middle;margin-right:6px}
-
-/* ---- Export ---- */
-.action-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
-
-/* ---- Vide ---- */
-.empty-state{text-align:center;padding:3rem;color:var(--text-faint);font-size:.9rem}
 
 /* ---- Loading ---- */
 .loading-bar{height:4px;background:linear-gradient(90deg,var(--accent) 0%,#fca5a5 50%,var(--accent) 100%);background-size:200% 100%;animation:loading 1.2s linear infinite;border-radius:2px;margin-bottom:1rem}
 @keyframes loading{0%{background-position:200% 0}100%{background-position:0 0}}
+.action-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+.empty-state{text-align:center;padding:3rem;color:var(--text-faint);font-size:.9rem}
+
+/* ---- Name tag ---- */
+.source-tag{display:inline-flex;align-items:center;gap:6px;background:#f0f2f5;border-radius:20px;padding:.3rem .9rem;font-size:.78rem;font-weight:600;color:#555;margin-bottom:1rem}
 </style>
 </head>
 <body>
@@ -88,98 +108,185 @@
 
 <div class="container">
 
-  <!-- Config JSONBin -->
-  <div class="config-banner" id="configBanner">
-    <span>&#9881;</span>
-    <div style="flex:1">
-      <strong>Configuration JSONBin</strong> — Meme cle que dans la page Resultats.
-      <div class="config-inputs">
-        <input class="config-input" id="inputApiKey" placeholder="Master Key ($2b$...)" type="password">
-        <input class="config-input" id="inputBinId"  placeholder="Bin ID">
-        <button class="btn-config" onclick="saveConfig()">Charger les classements</button>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('live')">&#128257; Temps reel</button>
+    <button class="tab"       onclick="switchTab('csv')">&#128196; Importer CSV</button>
+    <button class="tab"       onclick="switchTab('historique')">&#128195; Historique</button>
+  </div>
+
+  <!-- ===================== TAB LIVE ===================== -->
+  <div class="tab-panel active" id="tab-live">
+    <div class="config-banner" id="configBanner">
+      <span>&#9881;</span>
+      <div style="flex:1">
+        <strong>Configuration JSONBin</strong> — Meme cle que dans la page Resultats.
+        <div class="config-inputs">
+          <input class="config-input" id="inputApiKey" placeholder="Master Key ($2b$...)" type="password">
+          <input class="config-input" id="inputBinId"  placeholder="Bin ID">
+          <button class="btn-config" onclick="saveConfig()">Charger</button>
+        </div>
+      </div>
+    </div>
+    <div id="loadingBarLive" style="display:none"><div class="loading-bar"></div></div>
+    <div id="liveSectionInner" style="display:none">
+      <div class="source-tag">&#128257; Source : JSONBin en direct</div>
+      <div class="filter-bar" id="catFiltersLive"></div>
+      <div class="recap-grid" id="recapGridLive"></div>
+      <div class="action-row">
+        <button class="btn btn-primary" onclick="loadLive()">&#8635; Rafraichir</button>
+        <button class="btn btn-secondary" onclick="exportCSV('live')">&#11123; Export CSV</button>
+        <button class="btn btn-secondary" onclick="toggleBlocs('live')">&#9650; Stats blocs</button>
+        <button class="btn btn-dark" onclick="saveToHistory('live')">&#128190; Sauvegarder</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto"><table class="rank-table"><thead><tr>
+          <th>#</th><th>Dossard</th><th>Nom</th><th>Club</th><th>Sexe</th><th>Score</th><th>Blocs</th><th>Detail</th>
+        </tr></thead><tbody id="rankBodyLive"></tbody></table></div>
+      </div>
+      <div class="card" id="blocsCardLive" style="display:none;margin-top:1rem">
+        <h2 style="margin-bottom:1rem">Stats blocs</h2>
+        <div style="overflow-x:auto"><table class="blocs-table"><thead><tr>
+          <th>Bloc</th><th>Couleur</th><th>Reussites</th><th>% Reussite</th><th>Points</th>
+        </tr></thead><tbody id="blocsBodyLive"></tbody></table></div>
       </div>
     </div>
   </div>
 
-  <!-- Loading -->
-  <div id="loadingBar" style="display:none"><div class="loading-bar"></div></div>
+  <!-- ===================== TAB CSV ===================== -->
+  <div class="tab-panel" id="tab-csv">
+    <div class="card">
+      <h2 style="margin-bottom:1rem">Importer des fichiers CSV</h2>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.2rem">
+        Importe le CSV des resultats (format export JSONBin ou Google Forms) et le CSV des inscrits pour obtenir le classement complet.
+      </p>
+      <div class="import-row">
+        <div>
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.5rem">CSV Resultats</div>
+          <div class="mini-drop" id="dropResultats" onclick="document.getElementById('fileResultats').click()">
+            <span class="icon">&#128202;</span>
+            resultats_U12.csv
+            <div class="status" id="statusResultats"></div>
+            <input type="file" id="fileResultats" accept=".csv">
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.5rem">CSV Inscrits (optionnel)</div>
+          <div class="mini-drop" id="dropInscrits" onclick="document.getElementById('fileInscrits').click()">
+            <span class="icon">&#128101;</span>
+            INSCRITS_TOUS.csv
+            <div class="status" id="statusInscrits"></div>
+            <input type="file" id="fileInscrits" accept=".csv">
+          </div>
+        </div>
+      </div>
 
-  <!-- Section classements -->
-  <div id="mainSection" style="display:none">
-
-    <!-- Filtres catégorie -->
-    <div class="filter-bar" id="catFilters"></div>
-
-    <!-- Recap stats -->
-    <div class="recap-grid" id="recapGrid"></div>
-
-    <!-- Action bar -->
-    <div class="action-row">
-      <button class="btn btn-primary" onclick="loadData()">&#8635; Rafraichir</button>
-      <button class="btn btn-secondary" onclick="exportCSV()">&#11123; Export CSV</button>
-      <button class="btn btn-secondary" onclick="showBlocsTab()">&#9650; Stats blocs</button>
-    </div>
-
-    <!-- Tableau classement -->
-    <div class="card" style="padding:0;overflow:hidden" id="rankCard">
-      <div style="overflow-x:auto">
-        <table class="rank-table" id="rankTable">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Dossard</th>
-              <th>Nom</th>
-              <th>Club</th>
-              <th>Sexe</th>
-              <th>Score</th>
-              <th>Blocs</th>
-              <th>Detail par difficulte</th>
-            </tr>
-          </thead>
-          <tbody id="rankBody"></tbody>
-        </table>
+      <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:.3rem">Nom de la session (pour l'historique)</label>
+          <input type="text" id="sessionName" class="config-input" style="max-width:100%;font-family:inherit" placeholder="ex: U12 Dames - Open Bloc 2025">
+        </div>
+        <button class="btn btn-primary" style="margin-top:1.2rem" onclick="computeCSV()">Calculer le classement</button>
       </div>
     </div>
 
-    <!-- Stats blocs -->
-    <div class="card" id="blocsStatsCard" style="display:none;margin-top:1rem">
-      <h2 style="margin-bottom:1rem">Statistiques par bloc</h2>
-      <div style="overflow-x:auto">
-        <table class="blocs-table" id="blocsTable">
-          <thead>
-            <tr>
-              <th>Bloc</th><th>Couleur</th><th>Reussites</th><th>% Reussite</th><th>Points</th>
-            </tr>
-          </thead>
-          <tbody id="blocsBody"></tbody>
-        </table>
+    <div id="loadingBarCSV" style="display:none"><div class="loading-bar"></div></div>
+    <div id="csvSectionInner" style="display:none">
+      <div class="source-tag">&#128196; Source : fichier CSV importe</div>
+      <div class="filter-bar" id="catFiltersCSV"></div>
+      <div class="recap-grid" id="recapGridCSV"></div>
+      <div class="action-row">
+        <button class="btn btn-secondary" onclick="exportCSV('csv')">&#11123; Export CSV</button>
+        <button class="btn btn-secondary" onclick="toggleBlocs('csv')">&#9650; Stats blocs</button>
+        <button class="btn btn-dark"      onclick="saveToHistory('csv')">&#128190; Sauvegarder dans l'historique</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto"><table class="rank-table"><thead><tr>
+          <th>#</th><th>Dossard</th><th>Nom</th><th>Club</th><th>Sexe</th><th>Score</th><th>Blocs</th><th>Detail</th>
+        </tr></thead><tbody id="rankBodyCSV"></tbody></table></div>
+      </div>
+      <div class="card" id="blocsCardCSV" style="display:none;margin-top:1rem">
+        <h2 style="margin-bottom:1rem">Stats blocs</h2>
+        <div style="overflow-x:auto"><table class="blocs-table"><thead><tr>
+          <th>Bloc</th><th>Couleur</th><th>Reussites</th><th>% Reussite</th><th>Points</th>
+        </tr></thead><tbody id="blocsBodyCSV"></tbody></table></div>
       </div>
     </div>
+  </div>
 
+  <!-- ===================== TAB HISTORIQUE ===================== -->
+  <div class="tab-panel" id="tab-historique">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <h2>Historique des classements</h2>
+        <button class="btn btn-secondary" style="font-size:.78rem;padding:.35rem .8rem" onclick="clearHistory()">Tout effacer</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+    <!-- Classement depuis historique -->
+    <div id="historySectionInner" style="display:none">
+      <div class="source-tag" id="historySourceTag"></div>
+      <div class="filter-bar" id="catFiltersHist"></div>
+      <div class="recap-grid" id="recapGridHist"></div>
+      <div class="action-row">
+        <button class="btn btn-secondary" onclick="exportCSV('hist')">&#11123; Export CSV</button>
+        <button class="btn btn-secondary" onclick="toggleBlocs('hist')">&#9650; Stats blocs</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto"><table class="rank-table"><thead><tr>
+          <th>#</th><th>Dossard</th><th>Nom</th><th>Club</th><th>Sexe</th><th>Score</th><th>Blocs</th><th>Detail</th>
+        </tr></thead><tbody id="rankBodyHist"></tbody></table></div>
+      </div>
+      <div class="card" id="blocsCardHist" style="display:none;margin-top:1rem">
+        <h2 style="margin-bottom:1rem">Stats blocs</h2>
+        <div style="overflow-x:auto"><table class="blocs-table"><thead><tr>
+          <th>Bloc</th><th>Couleur</th><th>Reussites</th><th>% Reussite</th><th>Points</th>
+        </tr></thead><tbody id="blocsBodyHist"></tbody></table></div>
+      </div>
+    </div>
   </div>
 
 </div>
 
 <script>
+/* ============================================================
+   CONSTANTES
+   ============================================================ */
 var JSONBIN_URL = 'https://api.jsonbin.io/v3/b/';
 var API_KEY = localStorage.getItem('grimpe_api_key') || '';
 var BIN_ID  = localStorage.getItem('grimpe_bin_id')  || '';
-
-var allResultats  = [];
-var categoryData  = {};
-var currentCat    = 'TOUS';
-var showingBlocs  = false;
 
 var COLOR_CSS  = {JAUNE:'#FFFF00',ORANGE:'#FFC000',VERT:'#00B050',BLEU:'#00B0F0',ROUGE:'#FF0000',NOIR:'#111111',WHITE:'#f0f0f0'};
 var COLOR_FONT = {JAUNE:'#1a1a2e',ORANGE:'#1a1a2e',VERT:'#fff',BLEU:'#1a1a2e',ROUGE:'#fff',NOIR:'#fff',WHITE:'#1a1a2e'};
 var COLOR_LABEL= {JAUNE:'Facile',ORANGE:'Peu diff',VERT:'Moyen',BLEU:'Difficile',ROUGE:'Tres diff',NOIR:'Expert',WHITE:'Elite'};
 var DIFF_ORDER = ['JAUNE','ORANGE','VERT','BLEU','ROUGE','NOIR','WHITE'];
 
-// Restore config
+/* ============================================================
+   ETAT
+   ============================================================ */
+var liveData = null;      // {resultats, categoryData}
+var csvData  = null;      // resultats parsed from CSV
+var histData = null;      // loaded from history
+var blocsVisible = {live:false, csv:false, hist:false};
+var currentCat   = {live:'TOUS', csv:'TOUS', hist:'TOUS'};
+var inscritsMap  = {};    // dossard -> {nom,prenom,sexe,club,categorie}
+
+/* ============================================================
+   ONGLETS
+   ============================================================ */
+function switchTab(tab) {
+  var names = ['live','csv','historique'];
+  document.querySelectorAll('.tab').forEach(function(t,i){ t.classList.toggle('active', names[i]===tab); });
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.toggle('active', p.id==='tab-'+tab); });
+  if (tab === 'historique') renderHistoryList();
+}
+
+/* ============================================================
+   CONFIG LIVE
+   ============================================================ */
 if (API_KEY) document.getElementById('inputApiKey').value = API_KEY;
 if (BIN_ID)  document.getElementById('inputBinId').value  = BIN_ID;
 updateConfigBanner();
-if (API_KEY && BIN_ID) loadData();
+if (API_KEY && BIN_ID) loadLive();
 
 function saveConfig() {
   API_KEY = document.getElementById('inputApiKey').value.trim();
@@ -187,268 +294,468 @@ function saveConfig() {
   localStorage.setItem('grimpe_api_key', API_KEY);
   localStorage.setItem('grimpe_bin_id',  BIN_ID);
   updateConfigBanner();
-  if (API_KEY && BIN_ID) loadData();
+  if (API_KEY && BIN_ID) loadLive();
 }
-
 function updateConfigBanner() {
   document.getElementById('configBanner').classList.toggle('ok', !!(API_KEY && BIN_ID));
 }
 
 /* ============================================================
-   CHARGEMENT
+   CHARGEMENT LIVE
    ============================================================ */
-function loadData() {
+function loadLive() {
   if (!API_KEY || !BIN_ID) return;
-  document.getElementById('loadingBar').style.display = 'block';
-  document.getElementById('mainSection').style.display = 'none';
-
-  fetch(JSONBIN_URL + BIN_ID + '/latest', { headers: {'X-Master-Key': API_KEY} })
+  document.getElementById('loadingBarLive').style.display = 'block';
+  document.getElementById('liveSectionInner').style.display = 'none';
+  fetch(JSONBIN_URL + BIN_ID + '/latest', {headers:{'X-Master-Key':API_KEY}})
   .then(function(r){ return r.json(); })
   .then(function(d) {
-    document.getElementById('loadingBar').style.display = 'none';
-    allResultats = (d.record && d.record.resultats) ? d.record.resultats : [];
-    categoryData = (d.record && d.record.categoryData) ? d.record.categoryData : {};
-    document.getElementById('mainSection').style.display = 'block';
-    buildFilters();
-    renderClassement();
+    document.getElementById('loadingBarLive').style.display = 'none';
+    liveData = {
+      resultats:    (d.record && d.record.resultats)    || [],
+      categoryData: (d.record && d.record.categoryData) || {}
+    };
+    document.getElementById('liveSectionInner').style.display = 'block';
+    currentCat.live = 'TOUS';
+    renderSection('live', liveData.resultats, liveData.categoryData);
   })
   .catch(function(e) {
-    document.getElementById('loadingBar').style.display = 'none';
-    alert('Erreur de chargement : ' + e.message);
+    document.getElementById('loadingBarLive').style.display = 'none';
+    alert('Erreur : ' + e.message);
   });
 }
 
 /* ============================================================
-   SCORING — identique au notebook Python
-   Score bloc = 1000 / nombre de grimpeurs qui l'ont reussi
-   Score grimpeur = somme des scores de ses blocs
+   IMPORT CSV RESULTATS
    ============================================================ */
-function computeClassement(cat) {
-  // Filtrer les resultats
-  var results = cat === 'TOUS' ? allResultats : allResultats.filter(function(r){ return r.categorie === cat; });
-
-  // Garder seulement la derniere soumission par dossard
-  var lastByDossard = {};
-  results.forEach(function(r) {
-    var key = r.dossard + '-' + r.categorie;
-    if (!lastByDossard[key] || r.horodateur > lastByDossard[key].horodateur) {
-      lastByDossard[key] = r;
-    }
-  });
-  var deduped = Object.keys(lastByDossard).map(function(k){ return lastByDossard[k]; });
-
-  // Compter les reussites par bloc (pour le scoring)
-  var blocReussites = {}; // bloc -> nb de grimpeurs qui l'ont reussi
-  deduped.forEach(function(r) {
-    if (!r.blocs_valides) return;
-    Object.keys(r.blocs_valides).forEach(function(bloc) {
-      if (r.blocs_valides[bloc] === '1' || r.blocs_valides[bloc] === 1) {
-        blocReussites[bloc] = (blocReussites[bloc] || 0) + 1;
+document.getElementById('fileResultats').addEventListener('change', function(e) {
+  var f = e.target.files[0]; if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      csvData = parseResultatsCSV(ev.target.result);
+      document.getElementById('dropResultats').classList.add('loaded');
+      document.getElementById('dropResultats').querySelector('.icon').textContent = '✅';
+      document.getElementById('statusResultats').textContent = csvData.length + ' soumissions';
+      if (!document.getElementById('sessionName').value) {
+        document.getElementById('sessionName').value = f.name.replace('.csv','');
       }
+    } catch(err) {
+      document.getElementById('statusResultats').textContent = 'Erreur : ' + err.message;
+    }
+  };
+  reader.readAsText(f, 'UTF-8');
+});
+
+document.getElementById('fileInscrits').addEventListener('change', function(e) {
+  var f = e.target.files[0]; if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      inscritsMap = parseInscritsCSV(ev.target.result.replace(/^\uFEFF/,''));
+      document.getElementById('dropInscrits').classList.add('loaded');
+      document.getElementById('dropInscrits').querySelector('.icon').textContent = '✅';
+      document.getElementById('statusInscrits').textContent = Object.keys(inscritsMap).length + ' inscrits';
+    } catch(err) {
+      document.getElementById('statusInscrits').textContent = 'Erreur : ' + err.message;
+    }
+  };
+  reader.readAsText(f, 'UTF-8');
+});
+
+function parseResultatsCSV(text) {
+  text = text.replace(/^\uFEFF/,'');
+  // Detecte separateur , ou ;
+  var sep = text.indexOf('","') !== -1 || text.charAt(0) === '"' ? ',' : ';';
+  var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  var header = splitLine(lines[0], sep);
+  var results = [];
+
+  lines.slice(1).forEach(function(line) {
+    var cols = splitLine(line, sep);
+    if (cols.length < 2) return;
+    // Format: Horodateur, Dossard, Bloc[X], Bloc[Y]...
+    var horodateur = cols[0] || '';
+    var dossard    = parseInt(cols[1]);
+    if (isNaN(dossard)) return;
+
+    var blocs_valides = {};
+    for (var i = 2; i < header.length; i++) {
+      var blocNum = extractBlocNum(header[i]);
+      if (blocNum) {
+        blocs_valides[blocNum] = (cols[i] === '1' || cols[i] === '"1"') ? '1' : '';
+      }
+    }
+    var score = Object.keys(blocs_valides).filter(function(k){ return blocs_valides[k]==='1'; }).length;
+
+    // Info inscrit si disponible
+    var inscrit = inscritsMap[String(dossard)] || {};
+
+    results.push({
+      horodateur:    horodateur,
+      dossard:       dossard,
+      nom:           inscrit.nom    || 'Dossard ' + dossard,
+      prenom:        inscrit.prenom || '',
+      sexe:          inscrit.sexe   || '',
+      club:          inscrit.club   || '',
+      categorie:     inscrit.categorie || 'N/A',
+      blocs_valides: blocs_valides,
+      score:         score,
+      total_blocs:   Object.keys(blocs_valides).length
     });
   });
+  return results;
+}
 
-  // Score de chaque bloc = 1000 / nb reussites
-  var blocScore = {};
-  Object.keys(blocReussites).forEach(function(bloc) {
-    blocScore[bloc] = 1000 / blocReussites[bloc];
+function parseInscritsCSV(text) {
+  var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  var headers = lines[0].split(';').map(function(h){ return h.trim(); });
+  var map = {};
+  lines.slice(1).forEach(function(line) {
+    var cols = line.split(';').map(function(c){ return c.trim(); });
+    if (!cols[0]) return;
+    var obj = {};
+    headers.forEach(function(h,i){ obj[h] = cols[i]||''; });
+    map[obj.DOSSARD] = {
+      nom: obj.NOM, prenom: obj.PRENOM,
+      sexe: obj.SEXE, club: obj.CLUB, categorie: obj.CATEGORIE
+    };
   });
+  return map;
+}
 
-  // Recuperer les couleurs depuis categoryData
-  var couleurBloc = {}; // bloc -> couleur
-  if (cat !== 'TOUS' && categoryData[cat] && categoryData[cat].blocs) {
-    categoryData[cat].blocs.forEach(function(b) {
-      couleurBloc[String(b.bloc)] = b.couleur;
-    });
-  } else {
-    // Toutes les categories
-    Object.keys(categoryData).forEach(function(c) {
-      if (categoryData[c].blocs) {
-        categoryData[c].blocs.forEach(function(b) {
-          couleurBloc[String(b.bloc)] = b.couleur;
+function extractBlocNum(headerStr) {
+  var m = headerStr.match(/\[(\d+)\]/);
+  return m ? m[1] : null;
+}
+
+function splitLine(line, sep) {
+  // Gere les champs entre guillemets
+  var result = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === sep && !inQ) { result.push(cur.trim()); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function computeCSV() {
+  if (!csvData) { alert('Importe d\'abord le fichier CSV des resultats.'); return; }
+  document.getElementById('loadingBarCSV').style.display = 'block';
+  document.getElementById('csvSectionInner').style.display = 'none';
+
+  setTimeout(function() {
+    // Re-enrichir avec inscritsMap si charge apres
+    var enriched = csvData.map(function(r) {
+      var inscrit = inscritsMap[String(r.dossard)];
+      if (inscrit) {
+        return Object.assign({}, r, {
+          nom: inscrit.nom, prenom: inscrit.prenom,
+          sexe: inscrit.sexe, club: inscrit.club, categorie: inscrit.categorie
         });
       }
+      return r;
     });
-  }
+    csvData = enriched;
 
-  // Calcul du score par grimpeur avec detail par couleur
+    document.getElementById('loadingBarCSV').style.display = 'none';
+    document.getElementById('csvSectionInner').style.display = 'block';
+    currentCat.csv = 'TOUS';
+    renderSection('csv', csvData, {});
+  }, 100);
+}
+
+/* ============================================================
+   SCORING (identique notebook Python)
+   score bloc = 1000 / nb grimpeurs qui l'ont reussi
+   score grimpeur = somme des scores blocs
+   ============================================================ */
+function computeClassement(resultats, categoryData, cat) {
+  var list = cat === 'TOUS' ? resultats : resultats.filter(function(r){ return r.categorie === cat; });
+
+  // Derniere soumission par dossard
+  var last = {};
+  list.forEach(function(r) {
+    var key = r.dossard + '-' + (r.categorie||'');
+    if (!last[key] || r.horodateur > last[key].horodateur) last[key] = r;
+  });
+  var deduped = Object.keys(last).map(function(k){ return last[k]; });
+
+  // Couleurs depuis categoryData
+  var couleurBloc = {};
+  Object.keys(categoryData).forEach(function(c) {
+    if (categoryData[c] && categoryData[c].blocs) {
+      categoryData[c].blocs.forEach(function(b){ couleurBloc[String(b.bloc)] = b.couleur; });
+    }
+  });
+
+  // Reussites par bloc
+  var blocReus = {};
+  deduped.forEach(function(r) {
+    if (!r.blocs_valides) return;
+    Object.keys(r.blocs_valides).forEach(function(b) {
+      if (r.blocs_valides[b]==='1'||r.blocs_valides[b]===1) blocReus[b]=(blocReus[b]||0)+1;
+    });
+  });
+
+  // Score par bloc = 1000 / nb reussites
+  var blocScore = {};
+  Object.keys(blocReus).forEach(function(b){ blocScore[b] = 1000/blocReus[b]; });
+
+  // Score par grimpeur
   var classement = deduped.map(function(r) {
-    var score = 0;
-    var nbBlocs = 0;
-    var parCouleur = {}; // couleur -> {nb, blocs}
-    DIFF_ORDER.forEach(function(c){ parCouleur[c] = {nb:0, blocs:[]}; });
-
+    var score = 0, nbBlocs = 0;
+    var parCouleur = {};
+    DIFF_ORDER.forEach(function(c){ parCouleur[c] = {nb:0,blocs:[]}; });
     if (r.blocs_valides) {
-      Object.keys(r.blocs_valides).forEach(function(bloc) {
-        if (r.blocs_valides[bloc] === '1' || r.blocs_valides[bloc] === 1) {
-          score   += blocScore[bloc] || 0;
+      Object.keys(r.blocs_valides).forEach(function(b) {
+        if (r.blocs_valides[b]==='1'||r.blocs_valides[b]===1) {
+          score   += blocScore[b]||0;
           nbBlocs += 1;
-          var couleur = couleurBloc[String(bloc)] || 'AUTRE';
-          if (parCouleur[couleur]) {
-            parCouleur[couleur].nb++;
-            parCouleur[couleur].blocs.push(bloc);
-          }
+          var col = couleurBloc[String(b)]||'AUTRE';
+          if (parCouleur[col]) { parCouleur[col].nb++; parCouleur[col].blocs.push(b); }
         }
       });
     }
-
     return {
-      dossard:    r.dossard,
-      nom:        r.nom,
-      prenom:     r.prenom,
-      club:       r.club,
-      sexe:       r.sexe,
-      categorie:  r.categorie,
-      score:      score,
-      nbBlocs:    nbBlocs,
-      parCouleur: parCouleur,
+      dossard:r.dossard, nom:r.nom, prenom:r.prenom,
+      club:r.club, sexe:r.sexe, categorie:r.categorie,
+      score:score, nbBlocs:nbBlocs, parCouleur:parCouleur
     };
   });
 
-  // Tri : score DESC, puis nb blocs DESC
-  classement.sort(function(a, b) {
-    if (b.score !== a.score) return b.score - a.score;
-    return b.nbBlocs - a.nbBlocs;
-  });
+  // Tri score DESC puis blocs DESC
+  classement.sort(function(a,b){ return b.score!==a.score ? b.score-a.score : b.nbBlocs-a.nbBlocs; });
 
-  // Ajout du rang (gestion ex-aequo)
+  // Rangs avec ex-aequo
   var rang = 1;
-  classement.forEach(function(g, i) {
-    if (i > 0 && g.score === classement[i-1].score && g.nbBlocs === classement[i-1].nbBlocs) {
-      g.rang = classement[i-1].rang;
-    } else {
-      g.rang = rang;
-    }
+  classement.forEach(function(g,i) {
+    g.rang = (i>0 && g.score===classement[i-1].score && g.nbBlocs===classement[i-1].nbBlocs)
+      ? classement[i-1].rang : rang;
     rang++;
   });
 
-  return { classement: classement, blocScore: blocScore, blocReussites: blocReussites, couleurBloc: couleurBloc, total: deduped.length };
+  return {classement:classement, blocReus:blocReus, blocScore:blocScore, couleurBloc:couleurBloc, total:deduped.length};
 }
 
 /* ============================================================
-   RENDU
+   RENDU SECTION (live / csv / hist)
    ============================================================ */
-function buildFilters() {
+function renderSection(mode, resultats, categoryData) {
+  var cat = currentCat[mode];
+
+  // Filtres categories
   var cats = ['TOUS'];
-  allResultats.forEach(function(r){ if (r.categorie && cats.indexOf(r.categorie) === -1) cats.push(r.categorie); });
-  document.getElementById('catFilters').innerHTML = cats.map(function(c) {
-    return '<button class="cat-pill ' + (c===currentCat?'active':'') + '" onclick="setCat(\'' + c + '\',this)">' + c + '</button>';
+  resultats.forEach(function(r){ if(r.categorie && cats.indexOf(r.categorie)===-1) cats.push(r.categorie); });
+  document.getElementById('catFilters'+cap(mode)).innerHTML = cats.map(function(c) {
+    return '<button class="cat-pill '+(c===cat?'active':'')+'" onclick="setCat(\''+mode+'\',\''+c+'\',this)">'+c+'</button>';
   }).join('');
+
+  var res = computeClassement(resultats, categoryData, cat);
+  renderRecap(mode, res);
+  renderRankTable(mode, res);
+  if (blocsVisible[mode]) renderBlocsTable(mode, res);
 }
 
-function setCat(cat, btn) {
-  currentCat = cat;
-  document.querySelectorAll('.cat-pill').forEach(function(p){ p.classList.remove('active'); });
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function setCat(mode, cat, btn) {
+  currentCat[mode] = cat;
+  document.querySelectorAll('#catFilters'+cap(mode)+' .cat-pill').forEach(function(p){ p.classList.remove('active'); });
   btn.classList.add('active');
-  renderClassement();
+  var resultats = getResultats(mode);
+  var catData   = getCatData(mode);
+  var res = computeClassement(resultats, catData, cat);
+  renderRecap(mode, res);
+  renderRankTable(mode, res);
+  if (blocsVisible[mode]) renderBlocsTable(mode, res);
 }
 
-function renderClassement() {
-  var res = computeClassement(currentCat);
-  var cl  = res.classement;
+function getResultats(mode) {
+  if (mode==='live') return liveData ? liveData.resultats : [];
+  if (mode==='csv')  return csvData  || [];
+  if (mode==='hist') return histData ? histData.resultats : [];
+  return [];
+}
+function getCatData(mode) {
+  if (mode==='live') return liveData ? liveData.categoryData : {};
+  if (mode==='hist') return histData ? (histData.categoryData||{}) : {};
+  return {};
+}
 
-  // Recap
+function renderRecap(mode, res) {
+  var cl = res.classement;
   var maxScore = cl.length ? cl[0].score : 0;
   var avgBlocs = cl.length ? Math.round(cl.reduce(function(s,g){ return s+g.nbBlocs; },0)/cl.length*10)/10 : 0;
-  document.getElementById('recapGrid').innerHTML =
-    '<div class="recap-card"><span class="val">' + cl.length + '</span><div class="lbl">Grimpeurs</div></div>'
-   +'<div class="recap-card"><span class="val">' + (maxScore ? maxScore.toFixed(0) : 0) + '</span><div class="lbl">Meilleur score</div></div>'
-   +'<div class="recap-card"><span class="val">' + avgBlocs + '</span><div class="lbl">Moy. blocs</div></div>'
-   +'<div class="recap-card"><span class="val">' + Object.keys(res.blocReussites).length + '</span><div class="lbl">Blocs realises</div></div>';
+  document.getElementById('recapGrid'+cap(mode)).innerHTML =
+    '<div class="recap-card"><span class="val">'+cl.length+'</span><div class="lbl">Grimpeurs</div></div>'
+   +'<div class="recap-card"><span class="val">'+(maxScore?maxScore.toFixed(0):0)+'</span><div class="lbl">Meilleur score</div></div>'
+   +'<div class="recap-card"><span class="val">'+avgBlocs+'</span><div class="lbl">Moy. blocs</div></div>'
+   +'<div class="recap-card"><span class="val">'+Object.keys(res.blocReus).length+'</span><div class="lbl">Blocs realises</div></div>';
+}
 
-  // Tableau
+function renderRankTable(mode, res) {
+  var cl = res.classement;
+  var tbody = document.getElementById('rankBody'+cap(mode));
   if (!cl.length) {
-    document.getElementById('rankBody').innerHTML =
-      '<tr><td colspan="8" class="empty-state">Aucun resultat pour l\'instant.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Aucun resultat.</td></tr>';
     return;
   }
-
   var medals = ['🥇','🥈','🥉'];
-  document.getElementById('rankBody').innerHTML = cl.map(function(g, i) {
-    var rangDisplay = medals[g.rang-1] || g.rang;
-    var rankClass   = g.rang <= 3 ? 'rank-' + g.rang : '';
-
-    // Chips blocs par couleur
+  tbody.innerHTML = cl.map(function(g) {
     var chips = '';
     DIFF_ORDER.forEach(function(c) {
-      if (g.parCouleur[c] && g.parCouleur[c].nb > 0) {
-        chips += '<span class="bloc-chip" style="background:' + (COLOR_CSS[c]||'#ccc')
-          + ';color:' + (COLOR_FONT[c]||'#000') + '" title="' + COLOR_LABEL[c] + '">'
-          + g.parCouleur[c].nb + '</span>';
+      if (g.parCouleur[c]&&g.parCouleur[c].nb>0) {
+        chips += '<span class="bloc-chip" style="background:'+(COLOR_CSS[c]||'#ccc')+';color:'+(COLOR_FONT[c]||'#000')+'" title="'+COLOR_LABEL[c]+'">'+g.parCouleur[c].nb+'</span>';
       }
     });
-
-    var sexeBadge = '<span class="sexe-badge sexe-' + g.sexe + '">' + g.sexe + '</span>';
-
-    return '<tr class="' + rankClass + '">'
-      + '<td style="font-weight:800;font-size:1rem">' + rangDisplay + '</td>'
-      + '<td style="font-weight:700;color:var(--accent)">' + g.dossard + '</td>'
-      + '<td><strong>' + g.nom + '</strong> <span style="color:#888;font-size:.82rem">' + g.prenom + '</span>'
-      + '<br><span style="font-size:.75rem;color:#aaa">' + g.categorie + '</span></td>'
-      + '<td style="font-size:.82rem;color:var(--text-muted)">' + g.club + '</td>'
-      + '<td>' + sexeBadge + '</td>'
-      + '<td><span class="score-val">' + g.score.toFixed(1) + '</span>'
-      + '<span class="score-sub">' + g.nbBlocs + ' bloc' + (g.nbBlocs>1?'s':'') + '</span></td>'
-      + '<td style="font-weight:700">' + g.nbBlocs + '</td>'
-      + '<td><div class="blocs-bar">' + chips + '</div></td>'
-      + '</tr>';
+    var sexeBadge = g.sexe ? '<span class="sexe-badge sexe-'+g.sexe+'">'+g.sexe+'</span>' : '—';
+    var rankDisp  = medals[g.rang-1]||g.rang;
+    return '<tr class="'+(g.rang<=3?'rank-'+g.rang:'')+'">'
+      +'<td style="font-weight:800;font-size:1rem">'+rankDisp+'</td>'
+      +'<td style="font-weight:700;color:var(--accent)">'+g.dossard+'</td>'
+      +'<td><strong>'+g.nom+'</strong> <span style="color:#888;font-size:.82rem">'+g.prenom+'</span>'
+      +(g.categorie&&g.categorie!=='N/A'?'<br><span style="font-size:.75rem;color:#aaa">'+g.categorie+'</span>':'')+'</td>'
+      +'<td style="font-size:.82rem;color:var(--text-muted)">'+g.club+'</td>'
+      +'<td>'+sexeBadge+'</td>'
+      +'<td><span class="score-val">'+g.score.toFixed(1)+'</span><span class="score-sub">'+g.nbBlocs+' bloc'+(g.nbBlocs>1?'s':'')+'</span></td>'
+      +'<td style="font-weight:700">'+g.nbBlocs+'</td>'
+      +'<td><div class="blocs-bar">'+chips+'</div></td>'
+      +'</tr>';
   }).join('');
-
-  // Stats blocs si visible
-  if (showingBlocs) renderBlocsStats(res);
 }
 
-function showBlocsTab() {
-  showingBlocs = !showingBlocs;
-  document.getElementById('blocsStatsCard').style.display = showingBlocs ? 'block' : 'none';
-  if (showingBlocs) {
-    var res = computeClassement(currentCat);
-    renderBlocsStats(res);
+function renderBlocsTable(mode, res) {
+  var entries = Object.keys(res.blocReus).map(function(b) {
+    return {bloc:b, nb:res.blocReus[b], score:res.blocScore[b], couleur:res.couleurBloc[String(b)]||'AUTRE'};
+  });
+  entries.sort(function(a,b) {
+    var da=DIFF_ORDER.indexOf(a.couleur)===-1?99:DIFF_ORDER.indexOf(a.couleur);
+    var db=DIFF_ORDER.indexOf(b.couleur)===-1?99:DIFF_ORDER.indexOf(b.couleur);
+    return da!==db?da-db:parseInt(a.bloc)-parseInt(b.bloc);
+  });
+  var total = res.total;
+  document.getElementById('blocsBody'+cap(mode)).innerHTML = entries.map(function(e) {
+    var pct=total?Math.round(e.nb/total*100):0;
+    var bg=COLOR_CSS[e.couleur]||'#ccc', fg=COLOR_FONT[e.couleur]||'#000';
+    return '<tr>'
+      +'<td style="font-weight:700">'+e.bloc+'</td>'
+      +'<td><span style="background:'+bg+';color:'+fg+';padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:700">'+(COLOR_LABEL[e.couleur]||e.couleur)+'</span></td>'
+      +'<td>'+e.nb+' / '+total+'</td>'
+      +'<td><div style="display:flex;align-items:center;gap:8px"><div style="width:'+pct+'px;max-width:100px;height:7px;background:'+bg+';border-radius:3px"></div><span>'+pct+'%</span></div></td>'
+      +'<td style="font-weight:700">'+e.score.toFixed(1)+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function toggleBlocs(mode) {
+  blocsVisible[mode] = !blocsVisible[mode];
+  document.getElementById('blocsCard'+cap(mode)).style.display = blocsVisible[mode]?'block':'none';
+  if (blocsVisible[mode]) {
+    var res = computeClassement(getResultats(mode), getCatData(mode), currentCat[mode]);
+    renderBlocsTable(mode, res);
   }
 }
 
-function renderBlocsStats(res) {
-  var total   = res.total;
-  var entries = Object.keys(res.blocReussites).map(function(bloc) {
-    return {
-      bloc:    bloc,
-      nb:      res.blocReussites[bloc],
-      score:   res.blocScore[bloc],
-      couleur: res.couleurBloc[String(bloc)] || 'AUTRE'
-    };
-  });
+/* ============================================================
+   HISTORIQUE (localStorage)
+   ============================================================ */
+var HISTORY_KEY = 'imuntagnoli_classements_history';
 
-  // Trier par difficulte (couleur) puis par numero
-  entries.sort(function(a, b) {
-    var da = DIFF_ORDER.indexOf(a.couleur) === -1 ? 99 : DIFF_ORDER.indexOf(a.couleur);
-    var db = DIFF_ORDER.indexOf(b.couleur) === -1 ? 99 : DIFF_ORDER.indexOf(b.couleur);
-    return da !== db ? da - db : parseInt(a.bloc) - parseInt(b.bloc);
-  });
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e){ return []; }
+}
+function setHistory(h) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); } catch(e){}
+}
 
-  document.getElementById('blocsBody').innerHTML = entries.map(function(e) {
-    var pct    = total ? Math.round(e.nb / total * 100) : 0;
-    var barW   = pct;
-    var bg     = COLOR_CSS[e.couleur]  || '#ccc';
-    var fg     = COLOR_FONT[e.couleur] || '#000';
-    var label  = COLOR_LABEL[e.couleur] || e.couleur;
-    return '<tr>'
-      + '<td style="font-weight:700">' + e.bloc + '</td>'
-      + '<td><span style="background:' + bg + ';color:' + fg
-      + ';padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:700">' + label + '</span></td>'
-      + '<td>' + e.nb + ' / ' + total + '</td>'
-      + '<td><div style="display:flex;align-items:center;gap:8px">'
-      + '<div style="width:' + barW + 'px;max-width:100px;height:7px;background:' + bg + ';border-radius:3px"></div>'
-      + '<span>' + pct + '%</span></div></td>'
-      + '<td style="font-weight:700">' + e.score.toFixed(1) + '</td>'
-      + '</tr>';
-  }).join('');
+function saveToHistory(mode) {
+  var name = document.getElementById('sessionName') ? document.getElementById('sessionName').value.trim() : '';
+  if (!name) name = 'Classement ' + new Date().toLocaleDateString('fr-FR');
+  var resultats    = getResultats(mode);
+  var categoryData = getCatData(mode);
+  if (!resultats.length) { alert('Aucun resultat a sauvegarder.'); return; }
+
+  var history = getHistory();
+  history.unshift({
+    id:          Date.now(),
+    name:        name,
+    date:        new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    nbResultats: resultats.length,
+    resultats:   resultats,
+    categoryData:categoryData
+  });
+  // Garde max 20 entrees
+  if (history.length > 20) history = history.slice(0, 20);
+  setHistory(history);
+  alert('Classement sauvegarde : "' + name + '"');
+  renderHistoryList();
+}
+
+function renderHistoryList() {
+  var history = getHistory();
+  var el = document.getElementById('historyList');
+  if (!history.length) {
+    el.innerHTML = '<div class="empty-history">&#128202; Aucun classement sauvegarde.<br>Calcule un classement et clique "Sauvegarder".</div>';
+    return;
+  }
+  el.innerHTML = '<div class="history-list">'
+    + history.map(function(h) {
+      return '<div class="history-item">'
+        +'<div class="hi-icon">&#128202;</div>'
+        +'<div class="hi-info">'
+        +'<div class="hi-name">'+h.name+'</div>'
+        +'<div class="hi-meta">'+h.date+' &bull; '+h.nbResultats+' soumissions</div>'
+        +'</div>'
+        +'<div class="hi-actions">'
+        +'<button class="btn-load" onclick="loadFromHistory('+h.id+')">Charger</button>'
+        +'<button class="btn-del"  onclick="deleteFromHistory('+h.id+')">&#128465;</button>'
+        +'</div>'
+        +'</div>';
+    }).join('')
+    + '</div>';
+}
+
+function loadFromHistory(id) {
+  var history = getHistory();
+  var entry = null;
+  for (var i = 0; i < history.length; i++) {
+    if (history[i].id === id) { entry = history[i]; break; }
+  }
+  if (!entry) return;
+  histData = {resultats: entry.resultats, categoryData: entry.categoryData||{}};
+  document.getElementById('historySectionInner').style.display = 'block';
+  document.getElementById('historySourceTag').innerHTML = '&#128195; ' + entry.name + ' — ' + entry.date;
+  currentCat.hist = 'TOUS';
+  blocsVisible.hist = false;
+  document.getElementById('blocsCardHist').style.display = 'none';
+  renderSection('hist', histData.resultats, histData.categoryData);
+}
+
+function deleteFromHistory(id) {
+  if (!confirm('Supprimer ce classement ?')) return;
+  var history = getHistory().filter(function(h){ return h.id !== id; });
+  setHistory(history);
+  renderHistoryList();
+}
+
+function clearHistory() {
+  if (!confirm('Effacer tout l\'historique ?')) return;
+  setHistory([]);
+  renderHistoryList();
+  document.getElementById('historySectionInner').style.display = 'none';
 }
 
 /* ============================================================
    EXPORT CSV
    ============================================================ */
-function exportCSV() {
-  var res = computeClassement(currentCat);
+function exportCSV(mode) {
+  var resultats = getResultats(mode);
+  var catData   = getCatData(mode);
+  var res = computeClassement(resultats, catData, currentCat[mode]);
   var cl  = res.classement;
   if (!cl.length) { alert('Aucun resultat a exporter.'); return; }
 
@@ -456,8 +763,8 @@ function exportCSV() {
     'NB_JAUNE','NB_ORANGE','NB_VERT','NB_BLEU','NB_ROUGE','NB_NOIR','NB_BLANC'];
   var rows = cl.map(function(g) {
     var pc = g.parCouleur;
-    return [
-      g.rang, g.score.toFixed(2), g.dossard, g.nom, g.prenom, g.sexe, g.categorie, g.club, g.nbBlocs,
+    return [g.rang, g.score.toFixed(2), g.dossard, g.nom, g.prenom,
+      g.sexe, g.categorie, g.club, g.nbBlocs,
       pc.JAUNE.nb, pc.ORANGE.nb, pc.VERT.nb, pc.BLEU.nb, pc.ROUGE.nb, pc.NOIR.nb, (pc.WHITE||{nb:0}).nb
     ].join(';');
   });
@@ -466,7 +773,7 @@ function exportCSV() {
   var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'classement_' + (currentCat === 'TOUS' ? 'tous' : currentCat) + '.csv';
+  a.download = 'classement_' + (currentCat[mode]==='TOUS'?'tous':currentCat[mode]) + '.csv';
   a.click();
 }
 </script>
