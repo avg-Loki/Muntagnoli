@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Muntagnoli - Classements</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ---- Config ---- */
+.config-banner{background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--radius-md);padding:1rem 1.4rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:12px;font-size:.88rem}
+.config-banner.ok{background:var(--green-bg);border-color:var(--green-border)}
+.config-inputs{display:flex;flex-direction:column;gap:.5rem;margin-top:.6rem}
+.config-input{padding:.45rem .8rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;width:100%;max-width:400px}
+.config-input:focus{border-color:var(--accent)}
+.btn-config{margin-top:.4rem;padding:.45rem 1.2rem;background:var(--navy);color:white;border:none;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer}
+
+/* ---- Filtres ---- */
+.filter-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem;align-items:center}
+.cat-pill{padding:.35rem .9rem;border-radius:20px;border:1.5px solid var(--border);background:white;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all .15s}
+.cat-pill:hover{border-color:var(--accent);color:var(--accent)}
+.cat-pill.active{border-color:var(--accent);background:var(--accent);color:white}
+
+/* ---- Tableau classement ---- */
+.rank-table{width:100%;border-collapse:collapse;font-size:.86rem}
+.rank-table thead th{background:var(--navy);color:white;padding:10px 14px;text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.rank-table tbody tr{border-bottom:1px solid #f0f0f0;transition:background .1s}
+.rank-table tbody tr:hover{background:#f8f9ff}
+.rank-table tbody td{padding:10px 14px;vertical-align:middle}
+
+/* Podium */
+.rank-1 td:first-child{color:#f59e0b;font-size:1.3rem}
+.rank-2 td:first-child{color:#94a3b8;font-size:1.2rem}
+.rank-3 td:first-child{color:#cd7c2f;font-size:1.1rem}
+.rank-num{font-weight:800;font-size:.9rem;color:var(--accent)}
+
+.score-val{font-weight:800;font-size:1rem;color:var(--navy)}
+.score-sub{font-size:.75rem;color:var(--text-muted);display:block}
+
+/* Barres de couleur blocs */
+.blocs-bar{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.bloc-chip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:.65rem;font-weight:800;border:1px solid rgba(0,0,0,.1)}
+
+/* Badge sexe */
+.sexe-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.7rem;font-weight:700}
+.sexe-F{background:#fce7f3;color:#9d174d}
+.sexe-H{background:#dbeafe;color:#1e40af}
+.sexe-D{background:#fce7f3;color:#9d174d}
+.sexe-M{background:#dbeafe;color:#1e40af}
+
+/* ---- Stats recap ---- */
+.recap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.8rem;margin-bottom:1.2rem}
+.recap-card{background:white;border-radius:var(--radius-sm);padding:.8rem;text-align:center;border:1px solid var(--border)}
+.recap-card .val{font-size:1.4rem;font-weight:800;color:var(--navy);display:block}
+.recap-card .lbl{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}
+
+/* ---- Tableau blocs ---- */
+.blocs-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.blocs-table thead th{background:#f4f5f8;color:var(--navy);padding:8px 12px;text-align:left;font-size:.74rem;font-weight:700;text-transform:uppercase}
+.blocs-table tbody tr{border-bottom:1px solid #f0f0f0}
+.blocs-table tbody tr:hover{background:#f8f9ff}
+.blocs-table tbody td{padding:7px 12px}
+.diff-bar{height:8px;border-radius:4px;display:inline-block;vertical-align:middle;margin-right:6px}
+
+/* ---- Export ---- */
+.action-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+
+/* ---- Vide ---- */
+.empty-state{text-align:center;padding:3rem;color:var(--text-faint);font-size:.9rem}
+
+/* ---- Loading ---- */
+.loading-bar{height:4px;background:linear-gradient(90deg,var(--accent) 0%,#fca5a5 50%,var(--accent) 100%);background-size:200% 100%;animation:loading 1.2s linear infinite;border-radius:2px;margin-bottom:1rem}
+@keyframes loading{0%{background-position:200% 0}100%{background-position:0 0}}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <a href="index.html" class="logo">I</a>
+  <span class="brand">I <span>Muntagnoli</span></span>
+  <nav>
+    <a href="index.html">Accueil</a>
+    <a href="fiche-bloc.html">Fiche Bloc</a>
+    <a href="inscrits.html">Inscrits</a>
+    <a href="resultats.html">Resultats</a>
+    <a href="classements.html" class="active">Classements</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <!-- Config JSONBin -->
+  <div class="config-banner" id="configBanner">
+    <span>&#9881;</span>
+    <div style="flex:1">
+      <strong>Configuration JSONBin</strong> — Meme cle que dans la page Resultats.
+      <div class="config-inputs">
+        <input class="config-input" id="inputApiKey" placeholder="Master Key ($2b$...)" type="password">
+        <input class="config-input" id="inputBinId"  placeholder="Bin ID">
+        <button class="btn-config" onclick="saveConfig()">Charger les classements</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingBar" style="display:none"><div class="loading-bar"></div></div>
+
+  <!-- Section classements -->
+  <div id="mainSection" style="display:none">
+
+    <!-- Filtres catégorie -->
+    <div class="filter-bar" id="catFilters"></div>
+
+    <!-- Recap stats -->
+    <div class="recap-grid" id="recapGrid"></div>
+
+    <!-- Action bar -->
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="loadData()">&#8635; Rafraichir</button>
+      <button class="btn btn-secondary" onclick="exportCSV()">&#11123; Export CSV</button>
+      <button class="btn btn-secondary" onclick="showBlocsTab()">&#9650; Stats blocs</button>
+    </div>
+
+    <!-- Tableau classement -->
+    <div class="card" style="padding:0;overflow:hidden" id="rankCard">
+      <div style="overflow-x:auto">
+        <table class="rank-table" id="rankTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Dossard</th>
+              <th>Nom</th>
+              <th>Club</th>
+              <th>Sexe</th>
+              <th>Score</th>
+              <th>Blocs</th>
+              <th>Detail par difficulte</th>
+            </tr>
+          </thead>
+          <tbody id="rankBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Stats blocs -->
+    <div class="card" id="blocsStatsCard" style="display:none;margin-top:1rem">
+      <h2 style="margin-bottom:1rem">Statistiques par bloc</h2>
+      <div style="overflow-x:auto">
+        <table class="blocs-table" id="blocsTable">
+          <thead>
+            <tr>
+              <th>Bloc</th><th>Couleur</th><th>Reussites</th><th>% Reussite</th><th>Points</th>
+            </tr>
+          </thead>
+          <tbody id="blocsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+var JSONBIN_URL = 'https://api.jsonbin.io/v3/b/';
+var API_KEY = localStorage.getItem('grimpe_api_key') || '';
+var BIN_ID  = localStorage.getItem('grimpe_bin_id')  || '';
+
+var allResultats  = [];
+var categoryData  = {};
+var currentCat    = 'TOUS';
+var showingBlocs  = false;
+
+var COLOR_CSS  = {JAUNE:'#FFFF00',ORANGE:'#FFC000',VERT:'#00B050',BLEU:'#00B0F0',ROUGE:'#FF0000',NOIR:'#111111',WHITE:'#f0f0f0'};
+var COLOR_FONT = {JAUNE:'#1a1a2e',ORANGE:'#1a1a2e',VERT:'#fff',BLEU:'#1a1a2e',ROUGE:'#fff',NOIR:'#fff',WHITE:'#1a1a2e'};
+var COLOR_LABEL= {JAUNE:'Facile',ORANGE:'Peu diff',VERT:'Moyen',BLEU:'Difficile',ROUGE:'Tres diff',NOIR:'Expert',WHITE:'Elite'};
+var DIFF_ORDER = ['JAUNE','ORANGE','VERT','BLEU','ROUGE','NOIR','WHITE'];
+
+// Restore config
+if (API_KEY) document.getElementById('inputApiKey').value = API_KEY;
+if (BIN_ID)  document.getElementById('inputBinId').value  = BIN_ID;
+updateConfigBanner();
+if (API_KEY && BIN_ID) loadData();
+
+function saveConfig() {
+  API_KEY = document.getElementById('inputApiKey').value.trim();
+  BIN_ID  = document.getElementById('inputBinId').value.trim();
+  localStorage.setItem('grimpe_api_key', API_KEY);
+  localStorage.setItem('grimpe_bin_id',  BIN_ID);
+  updateConfigBanner();
+  if (API_KEY && BIN_ID) loadData();
+}
+
+function updateConfigBanner() {
+  document.getElementById('configBanner').classList.toggle('ok', !!(API_KEY && BIN_ID));
+}
+
+/* ============================================================
+   CHARGEMENT
+   ============================================================ */
+function loadData() {
+  if (!API_KEY || !BIN_ID) return;
+  document.getElementById('loadingBar').style.display = 'block';
+  document.getElementById('mainSection').style.display = 'none';
+
+  fetch(JSONBIN_URL + BIN_ID + '/latest', { headers: {'X-Master-Key': API_KEY} })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    document.getElementById('loadingBar').style.display = 'none';
+    allResultats = (d.record && d.record.resultats) ? d.record.resultats : [];
+    categoryData = (d.record && d.record.categoryData) ? d.record.categoryData : {};
+    document.getElementById('mainSection').style.display = 'block';
+    buildFilters();
+    renderClassement();
+  })
+  .catch(function(e) {
+    document.getElementById('loadingBar').style.display = 'none';
+    alert('Erreur de chargement : ' + e.message);
+  });
+}
+
+/* ============================================================
+   SCORING — identique au notebook Python
+   Score bloc = 1000 / nombre de grimpeurs qui l'ont reussi
+   Score grimpeur = somme des scores de ses blocs
+   ============================================================ */
+function computeClassement(cat) {
+  // Filtrer les resultats
+  var results = cat === 'TOUS' ? allResultats : allResultats.filter(function(r){ return r.categorie === cat; });
+
+  // Garder seulement la derniere soumission par dossard
+  var lastByDossard = {};
+  results.forEach(function(r) {
+    var key = r.dossard + '-' + r.categorie;
+    if (!lastByDossard[key] || r.horodateur > lastByDossard[key].horodateur) {
+      lastByDossard[key] = r;
+    }
+  });
+  var deduped = Object.keys(lastByDossard).map(function(k){ return lastByDossard[k]; });
+
+  // Compter les reussites par bloc (pour le scoring)
+  var blocReussites = {}; // bloc -> nb de grimpeurs qui l'ont reussi
+  deduped.forEach(function(r) {
+    if (!r.blocs_valides) return;
+    Object.keys(r.blocs_valides).forEach(function(bloc) {
+      if (r.blocs_valides[bloc] === '1' || r.blocs_valides[bloc] === 1) {
+        blocReussites[bloc] = (blocReussites[bloc] || 0) + 1;
+      }
+    });
+  });
+
+  // Score de chaque bloc = 1000 / nb reussites
+  var blocScore = {};
+  Object.keys(blocReussites).forEach(function(bloc) {
+    blocScore[bloc] = 1000 / blocReussites[bloc];
+  });
+
+  // Recuperer les couleurs depuis categoryData
+  var couleurBloc = {}; // bloc -> couleur
+  if (cat !== 'TOUS' && categoryData[cat] && categoryData[cat].blocs) {
+    categoryData[cat].blocs.forEach(function(b) {
+      couleurBloc[String(b.bloc)] = b.couleur;
+    });
+  } else {
+    // Toutes les categories
+    Object.keys(categoryData).forEach(function(c) {
+      if (categoryData[c].blocs) {
+        categoryData[c].blocs.forEach(function(b) {
+          couleurBloc[String(b.bloc)] = b.couleur;
+        });
+      }
+    });
+  }
+
+  // Calcul du score par grimpeur avec detail par couleur
+  var classement = deduped.map(function(r) {
+    var score = 0;
+    var nbBlocs = 0;
+    var parCouleur = {}; // couleur -> {nb, blocs}
+    DIFF_ORDER.forEach(function(c){ parCouleur[c] = {nb:0, blocs:[]}; });
+
+    if (r.blocs_valides) {
+      Object.keys(r.blocs_valides).forEach(function(bloc) {
+        if (r.blocs_valides[bloc] === '1' || r.blocs_valides[bloc] === 1) {
+          score   += blocScore[bloc] || 0;
+          nbBlocs += 1;
+          var couleur = couleurBloc[String(bloc)] || 'AUTRE';
+          if (parCouleur[couleur]) {
+            parCouleur[couleur].nb++;
+            parCouleur[couleur].blocs.push(bloc);
+          }
+        }
+      });
+    }
+
+    return {
+      dossard:    r.dossard,
+      nom:        r.nom,
+      prenom:     r.prenom,
+      club:       r.club,
+      sexe:       r.sexe,
+      categorie:  r.categorie,
+      score:      score,
+      nbBlocs:    nbBlocs,
+      parCouleur: parCouleur,
+    };
+  });
+
+  // Tri : score DESC, puis nb blocs DESC
+  classement.sort(function(a, b) {
+    if (b.score !== a.score) return b.score - a.score;
+    return b.nbBlocs - a.nbBlocs;
+  });
+
+  // Ajout du rang (gestion ex-aequo)
+  var rang = 1;
+  classement.forEach(function(g, i) {
+    if (i > 0 && g.score === classement[i-1].score && g.nbBlocs === classement[i-1].nbBlocs) {
+      g.rang = classement[i-1].rang;
+    } else {
+      g.rang = rang;
+    }
+    rang++;
+  });
+
+  return { classement: classement, blocScore: blocScore, blocReussites: blocReussites, couleurBloc: couleurBloc, total: deduped.length };
+}
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+function buildFilters() {
+  var cats = ['TOUS'];
+  allResultats.forEach(function(r){ if (r.categorie && cats.indexOf(r.categorie) === -1) cats.push(r.categorie); });
+  document.getElementById('catFilters').innerHTML = cats.map(function(c) {
+    return '<button class="cat-pill ' + (c===currentCat?'active':'') + '" onclick="setCat(\'' + c + '\',this)">' + c + '</button>';
+  }).join('');
+}
+
+function setCat(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-pill').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  renderClassement();
+}
+
+function renderClassement() {
+  var res = computeClassement(currentCat);
+  var cl  = res.classement;
+
+  // Recap
+  var maxScore = cl.length ? cl[0].score : 0;
+  var avgBlocs = cl.length ? Math.round(cl.reduce(function(s,g){ return s+g.nbBlocs; },0)/cl.length*10)/10 : 0;
+  document.getElementById('recapGrid').innerHTML =
+    '<div class="recap-card"><span class="val">' + cl.length + '</span><div class="lbl">Grimpeurs</div></div>'
+   +'<div class="recap-card"><span class="val">' + (maxScore ? maxScore.toFixed(0) : 0) + '</span><div class="lbl">Meilleur score</div></div>'
+   +'<div class="recap-card"><span class="val">' + avgBlocs + '</span><div class="lbl">Moy. blocs</div></div>'
+   +'<div class="recap-card"><span class="val">' + Object.keys(res.blocReussites).length + '</span><div class="lbl">Blocs realises</div></div>';
+
+  // Tableau
+  if (!cl.length) {
+    document.getElementById('rankBody').innerHTML =
+      '<tr><td colspan="8" class="empty-state">Aucun resultat pour l\'instant.</td></tr>';
+    return;
+  }
+
+  var medals = ['🥇','🥈','🥉'];
+  document.getElementById('rankBody').innerHTML = cl.map(function(g, i) {
+    var rangDisplay = medals[g.rang-1] || g.rang;
+    var rankClass   = g.rang <= 3 ? 'rank-' + g.rang : '';
+
+    // Chips blocs par couleur
+    var chips = '';
+    DIFF_ORDER.forEach(function(c) {
+      if (g.parCouleur[c] && g.parCouleur[c].nb > 0) {
+        chips += '<span class="bloc-chip" style="background:' + (COLOR_CSS[c]||'#ccc')
+          + ';color:' + (COLOR_FONT[c]||'#000') + '" title="' + COLOR_LABEL[c] + '">'
+          + g.parCouleur[c].nb + '</span>';
+      }
+    });
+
+    var sexeBadge = '<span class="sexe-badge sexe-' + g.sexe + '">' + g.sexe + '</span>';
+
+    return '<tr class="' + rankClass + '">'
+      + '<td style="font-weight:800;font-size:1rem">' + rangDisplay + '</td>'
+      + '<td style="font-weight:700;color:var(--accent)">' + g.dossard + '</td>'
+      + '<td><strong>' + g.nom + '</strong> <span style="color:#888;font-size:.82rem">' + g.prenom + '</span>'
+      + '<br><span style="font-size:.75rem;color:#aaa">' + g.categorie + '</span></td>'
+      + '<td style="font-size:.82rem;color:var(--text-muted)">' + g.club + '</td>'
+      + '<td>' + sexeBadge + '</td>'
+      + '<td><span class="score-val">' + g.score.toFixed(1) + '</span>'
+      + '<span class="score-sub">' + g.nbBlocs + ' bloc' + (g.nbBlocs>1?'s':'') + '</span></td>'
+      + '<td style="font-weight:700">' + g.nbBlocs + '</td>'
+      + '<td><div class="blocs-bar">' + chips + '</div></td>'
+      + '</tr>';
+  }).join('');
+
+  // Stats blocs si visible
+  if (showingBlocs) renderBlocsStats(res);
+}
+
+function showBlocsTab() {
+  showingBlocs = !showingBlocs;
+  document.getElementById('blocsStatsCard').style.display = showingBlocs ? 'block' : 'none';
+  if (showingBlocs) {
+    var res = computeClassement(currentCat);
+    renderBlocsStats(res);
+  }
+}
+
+function renderBlocsStats(res) {
+  var total   = res.total;
+  var entries = Object.keys(res.blocReussites).map(function(bloc) {
+    return {
+      bloc:    bloc,
+      nb:      res.blocReussites[bloc],
+      score:   res.blocScore[bloc],
+      couleur: res.couleurBloc[String(bloc)] || 'AUTRE'
+    };
+  });
+
+  // Trier par difficulte (couleur) puis par numero
+  entries.sort(function(a, b) {
+    var da = DIFF_ORDER.indexOf(a.couleur) === -1 ? 99 : DIFF_ORDER.indexOf(a.couleur);
+    var db = DIFF_ORDER.indexOf(b.couleur) === -1 ? 99 : DIFF_ORDER.indexOf(b.couleur);
+    return da !== db ? da - db : parseInt(a.bloc) - parseInt(b.bloc);
+  });
+
+  document.getElementById('blocsBody').innerHTML = entries.map(function(e) {
+    var pct    = total ? Math.round(e.nb / total * 100) : 0;
+    var barW   = pct;
+    var bg     = COLOR_CSS[e.couleur]  || '#ccc';
+    var fg     = COLOR_FONT[e.couleur] || '#000';
+    var label  = COLOR_LABEL[e.couleur] || e.couleur;
+    return '<tr>'
+      + '<td style="font-weight:700">' + e.bloc + '</td>'
+      + '<td><span style="background:' + bg + ';color:' + fg
+      + ';padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:700">' + label + '</span></td>'
+      + '<td>' + e.nb + ' / ' + total + '</td>'
+      + '<td><div style="display:flex;align-items:center;gap:8px">'
+      + '<div style="width:' + barW + 'px;max-width:100px;height:7px;background:' + bg + ';border-radius:3px"></div>'
+      + '<span>' + pct + '%</span></div></td>'
+      + '<td style="font-weight:700">' + e.score.toFixed(1) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+/* ============================================================
+   EXPORT CSV
+   ============================================================ */
+function exportCSV() {
+  var res = computeClassement(currentCat);
+  var cl  = res.classement;
+  if (!cl.length) { alert('Aucun resultat a exporter.'); return; }
+
+  var header = ['RANG','SCORE','DOSSARD','NOM','PRENOM','SEXE','CATEGORIE','CLUB','NOMBRE_BLOCS',
+    'NB_JAUNE','NB_ORANGE','NB_VERT','NB_BLEU','NB_ROUGE','NB_NOIR','NB_BLANC'];
+  var rows = cl.map(function(g) {
+    var pc = g.parCouleur;
+    return [
+      g.rang, g.score.toFixed(2), g.dossard, g.nom, g.prenom, g.sexe, g.categorie, g.club, g.nbBlocs,
+      pc.JAUNE.nb, pc.ORANGE.nb, pc.VERT.nb, pc.BLEU.nb, pc.ROUGE.nb, pc.NOIR.nb, (pc.WHITE||{nb:0}).nb
+    ].join(';');
+  });
+
+  var csv = '\uFEFF' + header.join(';') + '\r\n' + rows.join('\r\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'classement_' + (currentCat === 'TOUS' ? 'tous' : currentCat) + '.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
