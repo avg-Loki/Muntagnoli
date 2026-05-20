@@ -47,13 +47,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);min-height
 .athlete-info span{color:#555;font-size:.82rem}
 
 /* ---- Blocs ---- */
-.blocs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.bloc-btn{position:relative;aspect-ratio:1;border-radius:10px;border:3px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.bloc-btn .num{font-size:1.5rem;font-weight:800;line-height:1}
-.bloc-btn .diff{font-size:.6rem;font-weight:700;opacity:.7;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
-.bloc-btn.checked{border-color:rgba(0,0,0,.3);box-shadow:0 0 0 3px rgba(255,255,255,.5) inset}
-.bloc-btn.checked::after{content:'✓';position:absolute;top:4px;right:6px;font-size:.85rem;font-weight:900;color:rgba(0,0,0,.4)}
-.bloc-btn:active{transform:scale(.93)}
+.blocs-grid{display:flex;flex-direction:column;gap:8px}
+.bloc-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:all .15s;user-select:none;-webkit-tap-highlight-color:transparent;border:2px solid transparent;background:#fafbfc}
+.bloc-row:hover{background:#f0f2f5;border-color:rgba(0,0,0,.08)}
+.bloc-row.checked{border-color:rgba(0,0,0,.2);background:white}
+.bloc-row:active{transform:scale(.99)}
+.bloc-checkbox{width:24px;height:24px;border-radius:6px;border:2px solid rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:1rem}
+.bloc-row.checked .bloc-checkbox{background:rgba(0,0,0,.15);border-color:rgba(0,0,0,.3)}
+.bloc-color{width:38px;height:38px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(0,0,0,.1)}
+.bloc-color .num{font-size:1rem;font-weight:800;line-height:1}
+.bloc-color .diff{font-size:.5rem;font-weight:700;opacity:.8;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+.bloc-label{flex:1}
+.bloc-label .bloc-name{font-size:.92rem;font-weight:700;color:#1a1a2e}
+.bloc-label .bloc-diff{font-size:.75rem;color:#888;margin-top:1px}
 .c-JAUNE{background:#FFFF00;color:#1a1a2e}
 .c-ORANGE{background:#FFC000;color:#1a1a2e}
 .c-VERT{background:#00B050;color:white}
@@ -188,6 +194,7 @@ var timeoutHandle  = null;
 var fromCache      = false;
 
 var COLOR_LABELS = {JAUNE:'Facile',ORANGE:'Peu diff',VERT:'Moyen',BLEU:'Difficile',ROUGE:'Tres diff',NOIR:'Expert',WHITE:'Elite'};
+var COLOR_FONT  = {JAUNE:'#1a1a2e',ORANGE:'#1a1a2e',VERT:'#fff',BLEU:'#1a1a2e',ROUGE:'#fff',NOIR:'#fff',WHITE:'#1a1a2e'};
 var COLOR_CSS    = {JAUNE:'#FFFF00',ORANGE:'#FFC000',VERT:'#00B050',BLEU:'#00B0F0',ROUGE:'#FF0000',NOIR:'#111111',WHITE:'#f0f0f0'};
 
 document.getElementById('headerCat').textContent = CATEGORIE || '—';
@@ -379,7 +386,8 @@ function onDossardChange() {
     errEl.classList.remove('show');
     cardEl.style.display = 'block';
     checked = {};
-    document.querySelectorAll('.bloc-btn').forEach(function(b){ b.classList.remove('checked'); });
+    document.querySelectorAll('.bloc-row').forEach(function(b){ b.classList.remove('checked'); });
+  document.querySelectorAll('.bloc-checkbox').forEach(function(c){ c.innerHTML = ''; });
     updateProgress();
   } else {
     currentAthlete = null;
@@ -393,14 +401,24 @@ function onDossardChange() {
 function renderBlocs() {
   var grid = document.getElementById('blocsGrid');
   if (!blocs.length) {
-    grid.innerHTML = '<p style="color:#888;font-size:.88rem;grid-column:1/-1">Aucun bloc configure.</p>';
+    grid.innerHTML = '<p style="color:#888;font-size:.88rem">Aucun bloc configure.</p>';
     return;
   }
   var html = '';
   blocs.forEach(function(b) {
-    html += '<div class="bloc-btn c-' + b.couleur + '" id="bloc-' + b.bloc + '">'
+    var bg  = COLOR_CSS[b.couleur]    || '#ccc';
+    var fg  = COLOR_FONT[b.couleur]   || '#000';
+    var lbl = COLOR_LABELS[b.couleur] || b.couleur;
+    html += '<div class="bloc-row" id="bloc-' + b.bloc + '">'
+          + '<div class="bloc-checkbox" id="chk-' + b.bloc + '"></div>'
+          + '<div class="bloc-color" style="background:' + bg + ';color:' + fg + '">'
           + '<span class="num">' + b.bloc + '</span>'
-          + '<span class="diff">' + (COLOR_LABELS[b.couleur] || b.couleur) + '</span>'
+          + '<span class="diff">' + lbl + '</span>'
+          + '</div>'
+          + '<div class="bloc-label">'
+          + '<div class="bloc-name">Bloc ' + b.bloc + '</div>'
+          + '<div class="bloc-diff">' + lbl + '</div>'
+          + '</div>'
           + '</div>';
   });
   grid.innerHTML = html;
@@ -426,8 +444,10 @@ function renderBlocs() {
 
 function toggleBloc(num) {
   checked[num] = !checked[num];
-  var el = document.getElementById('bloc-' + num);
-  if (el) el.classList.toggle('checked', !!checked[num]);
+  var row = document.getElementById('bloc-' + num);
+  var chk = document.getElementById('chk-'  + num);
+  if (row) row.classList.toggle('checked', !!checked[num]);
+  if (chk) chk.innerHTML = checked[num] ? '✓' : '';
   updateProgress();
   updateSubmitBtn();
 }
