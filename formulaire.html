@@ -173,6 +173,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);min-height
     <h2>Merci !</h2>
     <p id="successMsg">Tes blocs ont bien ete enregistres.</p>
     <p style="color:#666;font-size:.85rem;margin-top:1rem">A bientot !</p>
+    <button class="btn-submit" style="margin-top:1.5rem;background:var(--navy)" onclick="retourResultats()">← Retour aux résultats</button>
   </div>
 
 </div>
@@ -459,6 +460,14 @@ function updateProgress() {
 
 function updateSubmitBtn() {
   document.getElementById('btnSubmit').disabled = !currentAthlete;
+}
+
+/* ============================================================
+   RETOUR RESULTATS
+   ============================================================ */
+function retourResultats() {
+  var url = 'resultats.html?k=' + encodeURIComponent(API_KEY) + '&b=' + encodeURIComponent(BIN_ID);
+  window.location.href = url;
 }
 
 /* ============================================================
