@@ -262,8 +262,8 @@ async function generateExcel() {
     [8,13,8,13, 2, 8,13,8,13, 2, 8,13,8,13].forEach((w, i) => { ws.getColumn(i+1).width = w; });
 
     /* Hauteurs lignes */
-    [22,22,22,22,18,18,15,22].forEach((h, i) => { ws.getRow(i+1).height = h; });
-    for (let i = 0; i < maxRows; i++) ws.getRow(9+i).height = 22;
+    [22,22,22,22,18,18,22].forEach((h, i) => { ws.getRow(i+1).height = h; });
+    for (let i = 0; i < maxRows; i++) ws.getRow(8+i).height = 22;
 
     /* Helpers */
     const argb = hex => 'FF' + hex.replace('#','').toUpperCase();
@@ -300,33 +300,21 @@ async function generateExcel() {
       headerRow(5, sc, 'Consigne particulière :', 'FFCCCC', 'FFCC0000');
       headerRow(6, sc, 'Prise finale basse', 'FFCCCC', 'FFCC0000', true, 'center');
 
-      /* Légende difficulté (ligne 7) */
-      [
-        [0, 'FFFF00', '000000', 'Facile'],
-        [1, 'FFC000', '000000', 'Peu diff.'],
-        [2, '00B050', 'FFFFFF', 'Moyen'],
-        [3, '00B0F0', '000000', 'Difficile'],
-      ].forEach(([co, bg, fg, lbl]) => {
-        const cell = ws.getCell(7, sc + co);
-        cell.value = lbl;
-        styleCell(cell, { bg: argb(bg), fg: argb(fg), bold: true, sz: 7 });
-      });
-
-      /* En-tête colonnes (ligne 8) */
+      /* En-tête colonnes (ligne 7) */
       [
         [0, 'N° bloc',    'BDD7EE'],
         [1, 'Validation', 'BDD7EE'],
         [2, 'N° bloc',    'BDD7EE'],
         [3, 'Validation', 'BDD7EE'],
       ].forEach(([co, txt, bg]) => {
-        const cell = ws.getCell(8, sc + co);
+        const cell = ws.getCell(7, sc + co);
         cell.value = txt;
         styleCell(cell, { bg: argb(bg), bold: true, sz: 9 });
       });
 
       /* Blocs (lignes 9+) */
       for (let i = 0; i < maxRows; i++) {
-        const rowNum = 9 + i;
+        const rowNum = 8 + i;
 
         if (i < leftBlocs.length) {
           const { bloc, couleur } = leftBlocs[i];
