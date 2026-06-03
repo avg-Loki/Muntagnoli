@@ -58,6 +58,23 @@
   <!-- ÉTAPE 3 -->
   <div class="card step-disabled" id="step3-card">
     <h2><span class="step">3</span> Générer le fichier Excel</h2>
+
+    <div style="margin-bottom:1.2rem;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0.8rem;">
+        <input type="checkbox" id="consigneActive" style="width:16px;height:16px;cursor:pointer;">
+        <span style="font-size:0.9rem;font-weight:600;color:var(--text);">Ajouter une consigne particulière</span>
+      </label>
+      <div id="consigneField" style="display:none;">
+        <input type="text" id="consigneText" placeholder="Ex : Prise finale basse, Départ assis… (défaut : Prise finale basse)"
+          style="width:100%;padding:0.65rem 1rem;border:2px solid var(--border);border-radius:var(--radius-sm);
+                 font-size:0.9rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem;">
+          Ce texte apparaîtra dans la case rouge sur chaque fiche.
+        </p>
+      </div>
+    </div>
+
     <button class="btn btn-primary btn-full" id="btnGenerate" disabled>Générer la fiche bloc</button>
     <div class="status" id="statusGenerate"></div>
   </div>
@@ -297,8 +314,15 @@ async function generateExcel() {
       headerRow(2, sc, 'Prénom :', 'D9D9D9');
       headerRow(3, sc, 'Sexe :', 'D9D9D9');
       headerRow(4, sc, 'Catégorie : ' + selectedCat, 'D9D9D9');
-      headerRow(5, sc, 'Consigne particulière :', 'FFCCCC', 'FFCC0000');
-      headerRow(6, sc, 'Prise finale basse', 'FFCCCC', 'FFCC0000', true, 'center');
+      const consigneActive = document.getElementById('consigneActive').checked;
+      const consigneTxt = document.getElementById('consigneText').value.trim() || 'Prise finale basse';
+      if (consigneActive) {
+        headerRow(5, sc, 'Consigne particulière :', 'FFCCCC', 'FFCC0000');
+        headerRow(6, sc, consigneTxt, 'FFCCCC', 'FFCC0000', true, 'center');
+      } else {
+        headerRow(5, sc, '', 'FFFFFF', 'FF000000', false);
+        headerRow(6, sc, '', 'FFFFFF', 'FF000000', false);
+      }
 
       /* En-tête colonnes (ligne 7) */
       [
@@ -414,6 +438,13 @@ function showResult(blocs, fname) {
     `<p style="font-size:0.82rem;color:#666;margin-bottom:0.5rem;">Aperçu des ${blocs.length} blocs sélectionnés :</p>`
     + legendHtml + html;
 }
+
+/* ============================================================
+   TOGGLE CONSIGNE
+   ============================================================ */
+document.getElementById('consigneActive').addEventListener('change', function() {
+  document.getElementById('consigneField').style.display = this.checked ? 'block' : 'none';
+});
 </script>
 </body>
 </html>
