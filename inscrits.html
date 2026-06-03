@@ -256,7 +256,7 @@
               <th onclick="sortBy('DATE')" data-col="DATE">Année <span class="sort-icon">↕</span></th>
               <th onclick="sortBy('SEXE')" data-col="SEXE">Sexe <span class="sort-icon">↕</span></th>
               <th onclick="sortBy('CLUB')" data-col="CLUB">Club <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('AGE_2025')" data-col="AGE_2025">Âge <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('AGE_2025')" data-col="AGE_2025">Âge (saison) <span class="sort-icon">↕</span></th>
               <th onclick="sortBy('CATEGORIE')" data-col="CATEGORIE">Catégorie <span class="sort-icon">↕</span></th>
             </tr>
           </thead>
@@ -273,29 +273,47 @@
 /* ============================================================
    CONSTANTES
    ============================================================ */
-const YEAR_TO_CAT = {
-  '2019': 'U8',  '2018': 'U8',
-  '2017': 'U10', '2016': 'U10',
-  '2015': 'U12', '2014': 'U12',
-  '2013': 'U14', '2012': 'U14',
-  '2011': 'U16', '2010': 'U16',
-  '2009': 'U18', '2008': 'U18',
-  '2007': 'U20', '2006': 'U20',
-};
+// ---- Logique de catégorisation dynamique (portée depuis Open_Bloc_2026.ipynb) ----
+// annee_licence : si mois <= 8 → année courante, sinon → année+1
+function getAnneeLicence() {
+  const d = new Date();
+  return d.getMonth() < 8 ? d.getFullYear() : d.getFullYear() + 1;
+}
 
-const CAT_ORDER  = ['U8','U10','U12','U14','U16','U18','U20','ADULTE'];
+function categorie(anneeNaissance) {
+  if (!anneeNaissance) return 'INCONNUE';
+  const an = parseInt(anneeNaissance);
+  if (isNaN(an)) return 'INCONNUE';
+  const age = getAnneeLicence() - an;
+  if (age <  7) return 'U07';
+  if (age <  9) return 'U09';
+  if (age < 11) return 'U11';
+  if (age < 13) return 'U13';
+  if (age < 15) return 'U15';
+  if (age < 17) return 'U17';
+  if (age < 19) return 'U19';
+  if (age < 21) return 'U21';
+  if (age < 40) return 'SENIOR';
+  if (age < 50) return 'VETERAN 1';
+  return 'VETERAN 2';
+}
+
+const CAT_ORDER  = ['U07','U09','U11','U13','U15','U17','U19','U21','SENIOR','VETERAN 1','VETERAN 2'];
 const SEXE_ORDER = ['F','H'];
 
 // Dossard start number per group
 const DOSSARD_STARTS = {
-  'U8-F':1,   'U8-H':11,
-  'U10-F':21, 'U10-H':31,
-  'U12-F':41, 'U12-H':61,
-  'U14-F':81, 'U14-H':101,
-  'U16-F':121,'U16-H':141,
-  'U18-F':161,'U18-H':181,
-  'U20-F':201,'U20-H':221,
-  'ADULTE-F':241,'ADULTE-H':261,
+  'U07-F':1,      'U07-H':11,
+  'U09-F':21,     'U09-H':31,
+  'U11-F':41,     'U11-H':61,
+  'U13-F':81,     'U13-H':101,
+  'U15-F':121,    'U15-H':141,
+  'U17-F':161,    'U17-H':181,
+  'U19-F':201,    'U19-H':221,
+  'U21-F':241,    'U21-H':261,
+  'SENIOR-F':281, 'SENIOR-H':301,
+  'VETERAN 1-F':321, 'VETERAN 1-H':341,
+  'VETERAN 2-F':361, 'VETERAN 2-H':381,
 };
 
 /* ============================================================
@@ -377,8 +395,8 @@ function parseCSV(text) {
 
   // Sort by name for consistent dossard assignment
   valid.sort((a, b) => {
-    const catA = YEAR_TO_CAT[a[COL['Catégorie (année de naissance)']]?.trim()] || 'ADULTE';
-    const catB = YEAR_TO_CAT[b[COL['Catégorie (année de naissance)']]?.trim()] || 'ADULTE';
+    const catA = categorie(a[COL['Catégorie (année de naissance)']]?.trim());
+    const catB = categorie(b[COL['Catégorie (année de naissance)']]?.trim());
     const sexeA = (a[COL['sexe']] || '').trim();
     const sexeB = (b[COL['sexe']] || '').trim();
     const nomA  = (a[COL['Nom participant']] || '').trim().toUpperCase();
@@ -403,8 +421,8 @@ function parseCSV(text) {
     // HelloAsso sometimes inverts them — flag as warning
     const warn = [];
 
-    const cat    = YEAR_TO_CAT[annee] || 'ADULTE';
-    const age    = annee.match(/^\d{4}$/) ? 2025 - parseInt(annee) : null;
+    const cat    = categorie(annee);
+    const age    = annee.match(/^\d{4}$/) ? getAnneeLicence() - parseInt(annee) : null;
     const key    = cat + '-' + sexe;
     const dossard = counters[key] !== undefined ? counters[key]++ : null;
 
@@ -604,24 +622,46 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 
 /* ============================================================
-   EXPORT CSV
+   EXPORT EXCEL (.csv trie par categorie, 10 lignes vides entre groupes)
    ============================================================ */
 function exportCSV() {
-  if (!filteredAthletes.length) return;
+  if (!allAthletes.length) return;
 
-  const cols = ['DOSSARD','NOM','PRENOM','DATE','SEXE','CLUB','AGE_2025','CATEGORIE'];
-  const header = cols.join(';');
-  const rows = filteredAthletes.map(a => cols.map(c => {
-    const v = a[c] ?? '';
-    return String(v).includes(';') ? `"${v}"` : v;
-  }).join(';'));
+  // 1. Trier tous les athletes par categorie → sexe → nom
+  const sorted = [...allAthletes].sort((a, b) => {
+    const ci = CAT_ORDER.indexOf(a.CATEGORIE) - CAT_ORDER.indexOf(b.CATEGORIE);
+    if (ci !== 0) return ci;
+    const si = SEXE_ORDER.indexOf(a.SEXE) - SEXE_ORDER.indexOf(b.SEXE);
+    if (si !== 0) return si;
+    return a.NOM.localeCompare(b.NOM);
+  });
 
-  const csv = '\uFEFF' + [header, ...rows].join('\r\n');
+  // 2. Construire les lignes avec 10 lignes vides entre groupes (cat+sexe)
+  const cols    = ['DOSSARD','NOM','PRENOM','DATE','SEXE','CLUB','AGE_2025','CATEGORIE'];
+  const headers = ['Dossard','Nom','Prenom','Annee naiss.','Sexe','Club','Age saison','Categorie'];
+
+  const rows = [];
+  let lastGroup = null;
+
+  sorted.forEach(a => {
+    const group = a.CATEGORIE + '-' + a.SEXE;
+    if (lastGroup !== null && group !== lastGroup) {
+      for (let i = 0; i < 10; i++) rows.push(new Array(cols.length).fill(''));
+    }
+    lastGroup = group;
+    rows.push(cols.map(c => a[c] ?? ''));
+  });
+
+  // 3. Generer le CSV avec BOM (compatible Excel)
+  const csvLines = [headers.join(';'), ...rows.map(r =>
+    r.map(v => String(v).includes(';') ? `"${v}"` : v).join(';')
+  )];
+  const csv  = '\uFEFF' + csvLines.join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href     = url;
-  link.download = 'INSCRITS_' + (activeFilter === 'TOUS' ? 'TOUS' : activeFilter) + '.csv';
+  link.download = 'INSCRITS_' + new Date().toISOString().slice(0,10) + '.csv';
   link.click();
   URL.revokeObjectURL(url);
 }
