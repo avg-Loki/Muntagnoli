@@ -236,6 +236,46 @@ if (BIN_ID)  document.getElementById('inputBinId').value  = BIN_ID;
 updateConfigBanner();
 updateSessionDisplay();
 
+// ---- Persistance session (navigation formulaire -> resultats) ----
+function saveCategoryDataToSession() {
+  try {
+    sessionStorage.setItem('imuntagnoli_categoriesData', JSON.stringify(categoriesData));
+    sessionStorage.setItem('imuntagnoli_inscritsData',   JSON.stringify(inscritsData));
+  } catch(e) { console.warn('sessionStorage plein :', e); }
+}
+
+function restoreCategoryDataFromSession() {
+  try {
+    var cd = sessionStorage.getItem('imuntagnoli_categoriesData');
+    var id = sessionStorage.getItem('imuntagnoli_inscritsData');
+    if (cd) { categoriesData = JSON.parse(cd); }
+    if (id) { inscritsData   = JSON.parse(id); }
+    if (Object.keys(categoriesData).length) {
+      renderCategoriesPreview();
+      renderQRCodes();
+      document.getElementById('dropBlocs').classList.add('loaded');
+      document.getElementById('dropBlocs').querySelector('.icon').textContent = '✅';
+      document.getElementById('blocsStatus').textContent = Object.keys(categoriesData).length + ' categories (cache)';
+      if (inscritsData.length) {
+        document.getElementById('dropInscrits').classList.add('loaded');
+        document.getElementById('dropInscrits').querySelector('.icon').textContent = '✅';
+        document.getElementById('inscritsStatus').textContent = inscritsData.length + ' athletes (cache)';
+      }
+    }
+  } catch(e) { console.warn('Erreur restauration session :', e); }
+}
+
+restoreCategoryDataFromSession();
+
+// Ouvrir directement l'onglet QR Codes si on revient du formulaire
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'qrcodes') {
+    switchTab('qrcodes');
+    document.querySelectorAll('.tab')[1].classList.add('active');
+  }
+})();
+
 function saveConfig() {
   API_KEY = document.getElementById('inputApiKey').value.trim();
   BIN_ID  = document.getElementById('inputBinId').value.trim();
@@ -330,6 +370,7 @@ function parseBlocs(rows) {
   });
   renderCategoriesPreview();
   renderQRCodes();
+  saveCategoryDataToSession();
 }
 
 // ---- Import inscrits ----
@@ -346,6 +387,7 @@ document.getElementById('fileInscrits').addEventListener('change', function(e) {
       if (Object.keys(categoriesData).length && inscritsData.length) saveCategoryDataToJsonBin();
       renderCategoriesPreview();
       renderQRCodes();
+      saveCategoryDataToSession();
     } catch(err) { document.getElementById('inscritsStatus').textContent = 'Erreur : ' + err.message; }
   };
   reader.readAsText(f,'UTF-8');
