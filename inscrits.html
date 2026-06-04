@@ -301,20 +301,34 @@ function categorie(anneeNaissance) {
 const CAT_ORDER  = ['U07','U09','U11','U13','U15','U17','U19','U21','SENIOR','VETERAN 1','VETERAN 2'];
 const SEXE_ORDER = ['F','H'];
 
-// Dossard start number per group
-const DOSSARD_STARTS = {
-  'U07-F':1,      'U07-H':11,
-  'U09-F':21,     'U09-H':31,
-  'U11-F':41,     'U11-H':61,
-  'U13-F':81,     'U13-H':101,
-  'U15-F':121,    'U15-H':141,
-  'U17-F':161,    'U17-H':181,
-  'U19-F':201,    'U19-H':221,
-  'U21-F':241,    'U21-H':261,
-  'SENIOR-F':281, 'SENIOR-H':301,
-  'VETERAN 1-F':321, 'VETERAN 1-H':341,
-  'VETERAN 2-F':361, 'VETERAN 2-H':381,
-};
+// Les dossards sont attribués dynamiquement après comptage par groupe
+// → voir buildDossardStarts() appelée dans parseCSV
+/* Calcule les numéros de départ par groupe (cat+sexe) de façon séquentielle.
+   Chaque groupe démarre au multiple de 10 supérieur au dernier dossard du groupe précédent.
+   Garantit l'unicité totale quelle que soit la taille des groupes. */
+function buildDossardStarts(valid) {
+  const counts = {};
+  valid.forEach(row => {
+    const cat  = categorie((row[COL['Catégorie (année de naissance)']] || '').trim());
+    const sexe = (row[COL['sexe']] || '').trim();
+    const key  = cat + '-' + sexe;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  const starts = {};
+  let cursor = 1;
+  CAT_ORDER.forEach(cat => {
+    SEXE_ORDER.forEach(sexe => {
+      const key = cat + '-' + sexe;
+      if (counts[key]) {
+        starts[key] = cursor;
+        // Prochain groupe : arrondir à la dizaine supérieure après la fin de ce groupe
+        cursor = Math.ceil((cursor + counts[key]) / 10) * 10 + 1;
+      }
+    });
+  });
+  return starts;
+}
 
 /* ============================================================
    ÉTAT
@@ -329,52 +343,51 @@ let searchTerm    = '';
 /* ============================================================
    IMPORT
    ============================================================ */
-const dropZone  = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', e  => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over'); });
-dropZone.addEventListener('drop', e => {
-  e.preventDefault(); dropZone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
-dropZone.addEventListener('click', () => fileInput.click());
-
-function handleFile(file) {
-  if (!file.name.match(/\.csv$/i)) {
-    showStatus('❌ Veuillez importer un fichier CSV.', 'error');
-    return;
-  }
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent  = (file.size / 1024).toFixed(1) + ' Ko';
-  document.getElementById('fileInfo').classList.add('show');
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      parseCSV(e.target.result);
-      showStatus('', '');
-    } catch(err) {
-      showStatus('❌ Erreur : ' + err.message, 'error');
-    }
-  };
-  reader.readAsText(file, 'UTF-8');
-}
 
 /* ============================================================
-   PARSING CSV
+   DRAG & DROP — helper universel
+   Gère : dragover, dragleave (sans clignotement), drop, click
    ============================================================ */
-function parseCSV(text) {
-  // Remove BOM
-  text = text.replace(/^\uFEFF/, '');
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) throw new Error('Fichier vide ou invalide.');
+function setupDropZone(zoneEl, inputEl, onFile) {
+  zoneEl.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    zoneEl.classList.add('drag-over');
+  });
+  zoneEl.addEventListener('dragenter', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    zoneEl.classList.add('drag-over');
+  });
+  zoneEl.addEventListener('dragleave', function(e) {
+    e.stopPropagation();
+    // Ne retirer la classe que si on quitte vraiment la zone (pas un enfant)
+    if (!zoneEl.contains(e.relatedTarget)) {
+      zoneEl.classList.remove('drag-over');
+    }
+  });
+  zoneEl.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    zoneEl.classList.remove('drag-over');
+    var files = e.dataTransfer.files;
+    if (files && files.length > 0) onFile(files[0]);
+  });
+  zoneEl.addEventListener('click', function(e) {
+    // Éviter double déclenchement si clic sur l'input lui-même
+    if (e.target === inputEl) return;
+    inputEl.click();
+  });
+  if (inputEl) {
+    inputEl.addEventListener('change', function(e) {
+      if (e.target.files[0]) onFile(e.target.files[0]);
+    });
+  }
+}
 
-  // Parse header
-  const headers = splitCSVLine(lines[0]);
-  const COL = {};
-  headers.forEach((h, i) => { COL[h.trim()] = i; });
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+setupDropZone(dropZone, fileInput, handleFile);
 
   // Required columns check
   const required = ['Nom participant','Prénom participant','Catégorie (année de naissance)','sexe','club ou organisme','Statut de la commande'];
@@ -384,8 +397,8 @@ function parseCSV(text) {
   const alerts = [];
   const athletes = [];
 
-  // Dossard counters per group
-  const counters = {...DOSSARD_STARTS};
+  // Dossard counters par groupe (calculés dynamiquement pour garantir l'unicité)
+  const counters = buildDossardStarts(valid);
 
   // Parse rows, skip header
   const rows = lines.slice(1).map(l => splitCSVLine(l));
