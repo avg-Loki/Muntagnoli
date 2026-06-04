@@ -585,24 +585,55 @@ function computeClassement(resultats, categoryData, cat) {
   var allDeduped = dedupList(resultats);
   var groupes = [];
 
-  CAT_ORDER.forEach(function(c) {
-    SEXE_ORDER.forEach(function(sexe) {
-      var sub = allDeduped.filter(function(r){ return r.categorie === c && r.sexe === sexe; });
+  // Récupérer toutes les catégories présentes dans les données,
+  // triées selon CAT_ORDER si connues, puis les inconnues à la fin
+  var catsPresentes = [];
+  allDeduped.forEach(function(r) {
+    if (r.categorie && catsPresentes.indexOf(r.categorie) === -1) catsPresentes.push(r.categorie);
+  });
+  catsPresentes.sort(function(a, b) {
+    var ia = CAT_ORDER.indexOf(a), ib = CAT_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  catsPresentes.forEach(function(cat) {
+    // Récupérer les sexes présents pour cette catégorie
+    var sexesPresents = [];
+    allDeduped.forEach(function(r) {
+      if (r.categorie === cat && r.sexe && sexesPresents.indexOf(r.sexe) === -1) sexesPresents.push(r.sexe);
+    });
+    // Trier F avant H
+    sexesPresents.sort(function(a,b){ return SEXE_ORDER.indexOf(a) - SEXE_ORDER.indexOf(b); });
+
+    sexesPresents.forEach(function(sexe) {
+      var sub = allDeduped.filter(function(r){ return r.categorie === cat && r.sexe === sexe; });
       if (!sub.length) return;
       var g = computeGroupe(sub, couleurBloc);
-      g.label = c + ' — ' + (sexe === 'F' ? 'Femmes' : 'Hommes');
+      g.label = cat + ' — ' + (sexe === 'F' ? 'Femmes' : sexe === 'H' ? 'Hommes' : sexe);
       g.total = sub.length;
       groupes.push(g);
     });
   });
+
+  // Grimpeurs sans catégorie ou sans sexe
+  var orphelins = allDeduped.filter(function(r){ return !r.categorie || !r.sexe; });
+  if (orphelins.length) {
+    var g = computeGroupe(orphelins, couleurBloc);
+    g.label = 'Sans catégorie';
+    g.total = orphelins.length;
+    groupes.push(g);
+  }
 
   return {
     groupes:    groupes,
     couleurBloc: couleurBloc,
     total:      allDeduped.length,
     classement: groupes.reduce(function(a,g){ return a.concat(g.classement); }, []),
-    blocReus:   {},
-    blocScore:  {},
+    blocReus:   groupes.length ? groupes[0].blocReus : {},
+    blocScore:  groupes.length ? groupes[0].blocScore : {},
   };
 }
 
