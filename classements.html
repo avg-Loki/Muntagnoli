@@ -258,7 +258,9 @@ var BIN_ID  = localStorage.getItem('grimpe_bin_id')  || '';
 var COLOR_CSS  = {JAUNE:'#FFFF00',ORANGE:'#FFC000',VERT:'#00B050',BLEU:'#00B0F0',ROUGE:'#FF0000',NOIR:'#111111',WHITE:'#f0f0f0'};
 var COLOR_FONT = {JAUNE:'#1a1a2e',ORANGE:'#1a1a2e',VERT:'#fff',BLEU:'#1a1a2e',ROUGE:'#fff',NOIR:'#fff',WHITE:'#1a1a2e'};
 var COLOR_LABEL= {JAUNE:'Facile',ORANGE:'Peu diff',VERT:'Moyen',BLEU:'Difficile',ROUGE:'Tres diff',NOIR:'Expert',WHITE:'Elite'};
-var DIFF_ORDER = ['JAUNE','ORANGE','VERT','BLEU','ROUGE','NOIR','WHITE'];
+var DIFF_ORDER  = ['JAUNE','ORANGE','VERT','BLEU','ROUGE','NOIR','WHITE'];
+var CAT_ORDER   = ['U07','U09','U11','U13','U15','U17','U19','U21','SENIOR','VETERAN 1','VETERAN 2'];
+var SEXE_ORDER  = ['F','H'];
 
 /* ============================================================
    ETAT
@@ -469,30 +471,14 @@ function computeCSV() {
 }
 
 /* ============================================================
-   SCORING (identique notebook Python)
-   score bloc = 1000 / nb grimpeurs qui l'ont reussi
-   score grimpeur = somme des scores blocs
+   SCORING
+   score bloc  = 1000 / nb grimpeurs qui l'ont reussi (par groupe cat+sexe)
+   score grimpeur = somme des scores blocs de son groupe
    ============================================================ */
-function computeClassement(resultats, categoryData, cat) {
-  var list = cat === 'TOUS' ? resultats : resultats.filter(function(r){ return r.categorie === cat; });
 
-  // Derniere soumission par dossard
-  var last = {};
-  list.forEach(function(r) {
-    var key = r.dossard + '-' + (r.categorie||'');
-    if (!last[key] || r.horodateur > last[key].horodateur) last[key] = r;
-  });
-  var deduped = Object.keys(last).map(function(k){ return last[k]; });
-
-  // Couleurs depuis categoryData
-  var couleurBloc = {};
-  Object.keys(categoryData).forEach(function(c) {
-    if (categoryData[c] && categoryData[c].blocs) {
-      categoryData[c].blocs.forEach(function(b){ couleurBloc[String(b.bloc)] = b.couleur; });
-    }
-  });
-
-  // Reussites par bloc
+/* Calcule le classement pour UN groupe (liste déjà filtrée + dédupliquée) */
+function computeGroupe(deduped, couleurBloc) {
+  // Reussites par bloc dans CE groupe uniquement
   var blocReus = {};
   deduped.forEach(function(r) {
     if (!r.blocs_valides) return;
@@ -501,7 +487,7 @@ function computeClassement(resultats, categoryData, cat) {
     });
   });
 
-  // Score par bloc = 1000 / nb reussites
+  // Score par bloc = 1000 / nb reussites dans CE groupe
   var blocScore = {};
   Object.keys(blocReus).forEach(function(b){ blocScore[b] = 1000/blocReus[b]; });
 
@@ -509,7 +495,7 @@ function computeClassement(resultats, categoryData, cat) {
   var classement = deduped.map(function(r) {
     var score = 0, nbBlocs = 0;
     var parCouleur = {};
-    DIFF_ORDER.forEach(function(c){ parCouleur[c] = {nb:0,blocs:[]}; });
+    DIFF_ORDER.forEach(function(col){ parCouleur[col] = {nb:0,blocs:[]}; });
     if (r.blocs_valides) {
       Object.keys(r.blocs_valides).forEach(function(b) {
         if (r.blocs_valides[b]==='1'||r.blocs_valides[b]===1) {
@@ -530,7 +516,7 @@ function computeClassement(resultats, categoryData, cat) {
   // Tri score DESC puis blocs DESC
   classement.sort(function(a,b){ return b.score!==a.score ? b.score-a.score : b.nbBlocs-a.nbBlocs; });
 
-  // Rangs avec ex-aequo
+  // Rangs avec ex-aequo (repart de 1 pour chaque groupe)
   var rang = 1;
   classement.forEach(function(g,i) {
     g.rang = (i>0 && g.score===classement[i-1].score && g.nbBlocs===classement[i-1].nbBlocs)
@@ -538,7 +524,86 @@ function computeClassement(resultats, categoryData, cat) {
     rang++;
   });
 
-  return {classement:classement, blocReus:blocReus, blocScore:blocScore, couleurBloc:couleurBloc, total:deduped.length};
+  return {classement:classement, blocReus:blocReus, blocScore:blocScore};
+}
+
+function computeClassement(resultats, categoryData, cat) {
+  // Couleurs depuis categoryData
+  var couleurBloc = {};
+  Object.keys(categoryData).forEach(function(c) {
+    if (categoryData[c] && categoryData[c].blocs) {
+      categoryData[c].blocs.forEach(function(b){ couleurBloc[String(b.bloc)] = b.couleur; });
+    }
+  });
+
+  // Dédupliquer par dossard (dernière soumission)
+  function dedupList(list) {
+    var last = {};
+    list.forEach(function(r) {
+      var key = r.dossard + '-' + (r.categorie||'');
+      if (!last[key] || r.horodateur > last[key].horodateur) last[key] = r;
+    });
+    return Object.keys(last).map(function(k){ return last[k]; });
+  }
+
+  if (cat !== 'TOUS') {
+    // Catégorie spécifique : séparer F et H, calculer séparément, fusionner avec séparateur
+    var list = resultats.filter(function(r){ return r.categorie === cat; });
+    var deduped = dedupList(list);
+
+    var groupes = [];
+    SEXE_ORDER.forEach(function(sexe) {
+      var sub = deduped.filter(function(r){ return r.sexe === sexe; });
+      if (!sub.length) return;
+      var g = computeGroupe(sub, couleurBloc);
+      g.label = cat + ' — ' + (sexe === 'F' ? 'Femmes' : 'Hommes');
+      g.total = sub.length;
+      groupes.push(g);
+    });
+
+    // Si un seul sexe présent, pas besoin de séparateur
+    if (groupes.length <= 1) {
+      var res = groupes[0] || {classement:[], blocReus:{}, blocScore:{}};
+      res.couleurBloc = couleurBloc;
+      res.total = deduped.length;
+      res.groupes = null;
+      return res;
+    }
+
+    return {
+      groupes:   groupes,
+      couleurBloc: couleurBloc,
+      total:     deduped.length,
+      // Pour compatibilité recap : agréger
+      classement: groupes.reduce(function(a,g){ return a.concat(g.classement); }, []),
+      blocReus:  groupes[0].blocReus, // approximation pour recap
+      blocScore: groupes[0].blocScore,
+    };
+  }
+
+  // TOUS : calculer par groupe cat+sexe, conserver les scores isolés
+  var allDeduped = dedupList(resultats);
+  var groupes = [];
+
+  CAT_ORDER.forEach(function(c) {
+    SEXE_ORDER.forEach(function(sexe) {
+      var sub = allDeduped.filter(function(r){ return r.categorie === c && r.sexe === sexe; });
+      if (!sub.length) return;
+      var g = computeGroupe(sub, couleurBloc);
+      g.label = c + ' — ' + (sexe === 'F' ? 'Femmes' : 'Hommes');
+      g.total = sub.length;
+      groupes.push(g);
+    });
+  });
+
+  return {
+    groupes:    groupes,
+    couleurBloc: couleurBloc,
+    total:      allDeduped.length,
+    classement: groupes.reduce(function(a,g){ return a.concat(g.classement); }, []),
+    blocReus:   {},
+    blocScore:  {},
+  };
 }
 
 /* ============================================================
@@ -597,35 +662,59 @@ function renderRecap(mode, res) {
    +'<div class="recap-card"><span class="val">'+Object.keys(res.blocReus).length+'</span><div class="lbl">Blocs realises</div></div>';
 }
 
+function renderAthleteRow(g) {
+  var chips = '';
+  DIFF_ORDER.forEach(function(c) {
+    if (g.parCouleur[c]&&g.parCouleur[c].nb>0) {
+      chips += '<span class="bloc-chip" style="background:'+(COLOR_CSS[c]||'#ccc')+';color:'+(COLOR_FONT[c]||'#000')+'" title="'+COLOR_LABEL[c]+'">'+g.parCouleur[c].nb+'</span>';
+    }
+  });
+  var sexeBadge = g.sexe ? '<span class="sexe-badge sexe-'+g.sexe+'">'+g.sexe+'</span>' : '—';
+  var medals    = ['🥇','🥈','🥉'];
+  var rankDisp  = medals[g.rang-1]||g.rang;
+  return '<tr class="'+(g.rang<=3?'rank-'+g.rang:'')+'">'
+    +'<td style="font-weight:800;font-size:1rem">'+rankDisp+'</td>'
+    +'<td style="font-weight:700;color:var(--accent)">'+g.dossard+'</td>'
+    +'<td><strong>'+g.nom+'</strong> <span style="color:#888;font-size:.82rem">'+g.prenom+'</span>'
+    +(g.categorie&&g.categorie!=='N/A'?'<br><span style="font-size:.75rem;color:#aaa">'+g.categorie+'</span>':'')+'</td>'
+    +'<td style="font-size:.82rem;color:var(--text-muted)">'+g.club+'</td>'
+    +'<td>'+sexeBadge+'</td>'
+    +'<td><span class="score-val">'+g.score.toFixed(1)+'</span><span class="score-sub">'+g.nbBlocs+' bloc'+(g.nbBlocs>1?'s':'')+'</span></td>'
+    +'<td style="font-weight:700">'+g.nbBlocs+'</td>'
+    +'<td><div class="blocs-bar">'+chips+'</div></td>'
+    +'</tr>';
+}
+
 function renderRankTable(mode, res) {
-  var cl = res.classement;
   var tbody = document.getElementById('rankBody'+cap(mode));
+
+  if (res.groupes && res.groupes.length) {
+    // Affichage multi-groupes avec séparateur par groupe
+    var html = '';
+    res.groupes.forEach(function(grp) {
+      // Séparateur titre de groupe
+      html += '<tr><td colspan="8" style="'
+        + 'background:var(--navy);color:white;font-weight:700;font-size:.82rem;'
+        + 'padding:8px 14px;letter-spacing:.5px;text-transform:uppercase">'
+        + grp.label + ' — ' + grp.total + ' grimpeur' + (grp.total>1?'s':'')
+        + '</td></tr>';
+      if (!grp.classement.length) {
+        html += '<tr><td colspan="8" style="color:#aaa;padding:8px 14px;font-size:.82rem">Aucun résultat</td></tr>';
+      } else {
+        grp.classement.forEach(function(g){ html += renderAthleteRow(g); });
+      }
+    });
+    tbody.innerHTML = html || '<tr><td colspan="8" class="empty-state">Aucun résultat.</td></tr>';
+    return;
+  }
+
+  // Catégorie unique sans séparateur
+  var cl = res.classement;
   if (!cl.length) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Aucun resultat.</td></tr>';
     return;
   }
-  var medals = ['🥇','🥈','🥉'];
-  tbody.innerHTML = cl.map(function(g) {
-    var chips = '';
-    DIFF_ORDER.forEach(function(c) {
-      if (g.parCouleur[c]&&g.parCouleur[c].nb>0) {
-        chips += '<span class="bloc-chip" style="background:'+(COLOR_CSS[c]||'#ccc')+';color:'+(COLOR_FONT[c]||'#000')+'" title="'+COLOR_LABEL[c]+'">'+g.parCouleur[c].nb+'</span>';
-      }
-    });
-    var sexeBadge = g.sexe ? '<span class="sexe-badge sexe-'+g.sexe+'">'+g.sexe+'</span>' : '—';
-    var rankDisp  = medals[g.rang-1]||g.rang;
-    return '<tr class="'+(g.rang<=3?'rank-'+g.rang:'')+'">'
-      +'<td style="font-weight:800;font-size:1rem">'+rankDisp+'</td>'
-      +'<td style="font-weight:700;color:var(--accent)">'+g.dossard+'</td>'
-      +'<td><strong>'+g.nom+'</strong> <span style="color:#888;font-size:.82rem">'+g.prenom+'</span>'
-      +(g.categorie&&g.categorie!=='N/A'?'<br><span style="font-size:.75rem;color:#aaa">'+g.categorie+'</span>':'')+'</td>'
-      +'<td style="font-size:.82rem;color:var(--text-muted)">'+g.club+'</td>'
-      +'<td>'+sexeBadge+'</td>'
-      +'<td><span class="score-val">'+g.score.toFixed(1)+'</span><span class="score-sub">'+g.nbBlocs+' bloc'+(g.nbBlocs>1?'s':'')+'</span></td>'
-      +'<td style="font-weight:700">'+g.nbBlocs+'</td>'
-      +'<td><div class="blocs-bar">'+chips+'</div></td>'
-      +'</tr>';
-  }).join('');
+  tbody.innerHTML = cl.map(renderAthleteRow).join('');
 }
 
 function renderBlocsTable(mode, res) {
